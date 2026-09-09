@@ -1,0 +1,13 @@
+hola
+def estas?
+mi nombre es eduardo
+23
+gala2
+++
++
+--
+-
+**
+*
+[]
+[

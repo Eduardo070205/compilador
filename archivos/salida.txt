@@ -1,0 +1,44 @@
+------------------------------------------------------------------------------
+TOKEN                     | CATEGORÍA            | TIPO DATO                
+------------------------------------------------------------------------------
+resultado?                | Identificador        | string                   
+x?                        | Identificador        | string                   
+y?                        | Identificador        | string                   
+resultado?                | Identificador        | string                   
+z?                        | Identificador        | string                   
+miFuncion?                | Identificador        | string                   
+a?                        | Identificador        | string                   
+def                       | Palabra Reservada    | Definicion de variable   
+if                        | Palabra Reservada    | Sentencia if             
+def                       | Palabra Reservada    | Definicion de variable   
+while                     | Palabra Reservada    | Bucle while              
+def                       | Palabra Reservada    | Definicion de variable   
+func                      | Palabra Reservada    | Funcion                  
+def                       | Palabra Reservada    | Definicion de variable   
+10                        | Número              
+3                         | Número              
+1                         | Número              
+7                         | Número              
+=                         | Operador            
++                         | Operador            
+=                         | Operador            
+=                         | Operador            
+=                         | Operador            
+;                         | Símbolo             
+(                         | Símbolo             
+)                         | Símbolo             
+[                         | Símbolo             
+;                         | Símbolo             
+]                         | Símbolo             
+(                         | Símbolo             
+)                         | Símbolo             
+[                         | Símbolo             
+;                         | Símbolo             
+]                         | Símbolo             
+(                         | Símbolo             
+)                         | Símbolo             
+[                         | Símbolo             
+;                         | Símbolo             
+]                         | Símbolo             
+x                         | No válido           
+-------------------------------------------------------

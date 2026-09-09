@@ -1,0 +1,4 @@
+def resultado? = x? + 10 ;
+if ( x ) [ def y? = 3 ; ]
+while ( resultado? ) [ def z? = 1 ; ]
+func miFuncion? ( ) [ def a? = 7 ; ]

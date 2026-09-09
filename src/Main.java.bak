@@ -1,0 +1,200 @@
+import java.io.*;
+import java.util.ArrayList;
+
+public class Main {
+    public static void main(String[] args) {
+
+        ArrayList<String> tokens = new ArrayList<String>();
+        ArrayList<Integer> lineasTokens = new ArrayList<Integer>();
+        ArrayList<String> tokensNoValidos = new ArrayList<String>();
+        ArrayList<Integer> lineasNoValidos = new ArrayList<Integer>();
+        Tokens token = new Tokens();
+        String cadena = "";
+        String ruta1 = "archivos/codigo_1.txt";
+        File archivo;
+        FileReader fr = null;
+        String rutaSalida = "archivos/salida.txt";
+        BufferedReader br = null;
+        int linea = 0;
+
+        try {
+
+            archivo = new File(ruta1);
+            fr = new FileReader(archivo);
+            br = new BufferedReader(fr);
+            String fila = null;
+
+            while ((fila = br.readLine()) != null) {
+
+                linea = linea + 1;
+
+                for (int i = 0; i < fila.length(); i++) {
+                    if (fila.charAt(i) != ' ') {
+                        cadena = cadena + fila.charAt(i);
+                    } else {
+                        tokens.add(cadena);
+                        lineasTokens.add(linea);
+                        cadena = "";
+                    }
+                }
+                tokens.add(cadena);
+                lineasTokens.add(linea);
+                cadena = "";
+            }
+
+            ArrayList<String> ids  = token.identificador(tokens);
+            ArrayList<String> pr   = token.palabraReservadas(tokens);
+            ArrayList<String> num  = token.numero(tokens);
+            ArrayList<String> ope  = token.operador(tokens);
+            ArrayList<String> simb = token.simbolo(tokens);
+
+            ArrayList<String> todosLosValidos = new ArrayList<>();
+            todosLosValidos.addAll(ids);
+            todosLosValidos.addAll(pr);
+            todosLosValidos.addAll(num);
+            todosLosValidos.addAll(ope);
+            todosLosValidos.addAll(simb);
+
+            ArrayList<String> lexemasOriginales = new ArrayList<>(tokens);
+
+            // Recorremos los tokens conservando su linea de origen para
+            // poder reportar en que linea aparece cada token no valido.
+            for (int k = 0; k < tokens.size(); k++) {
+                String t = tokens.get(k);
+                if (t.isEmpty()) continue;
+                if (!todosLosValidos.contains(t)) {
+                    tokensNoValidos.add(t);
+                    lineasNoValidos.add(lineasTokens.get(k));
+                }
+            }
+
+            // ── Imprimir resultados léxicos ──────────────────────────
+            System.out.println("Identificadores");
+            for (String s : ids)  System.out.println(s);
+            System.out.println("Palabras reservadas");
+            for (String s : pr)   System.out.println(s);
+            System.out.println("Números");
+            for (String s : num)  System.out.println(s);
+            System.out.println("Operadores");
+            for (String s : ope)  System.out.println(s);
+            System.out.println("Simbolos");
+            for (String s : simb) System.out.println(s);
+            System.out.println("No validos");
+            for (int k = 0; k < tokensNoValidos.size(); k++)
+                System.out.println(tokensNoValidos.get(k) + "  (linea " + lineasNoValidos.get(k) + ")");
+
+            // ── Guardar salida léxica ────────────────────────────────
+            try (PrintWriter writer = new PrintWriter(new FileWriter(rutaSalida))) {
+                writer.println("-------------------------------------------------------");
+                writer.printf("%-25s | %-25s%n", "TOKEN", "CATEGORÍA");
+                writer.println("-------------------------------------------------------");
+                for (String id : ids)  writer.printf("%-25s | %-25s%n", id, "Identificador");
+                for (String p  : pr)   writer.printf("%-25s | %-25s%n", p,  "Palabra Reservada");
+                for (String n  : num)  writer.printf("%-25s | %-25s%n", n,  "Número");
+                for (String o  : ope)  writer.printf("%-25s | %-25s%n", o,  "Operador");
+                for (String s  : simb) writer.printf("%-25s | %-25s%n", s,  "Símbolo");
+                for (int k = 0; k < tokensNoValidos.size(); k++)
+                    writer.printf("%-25s | %-25s%n", tokensNoValidos.get(k),
+                            "No válido (línea " + lineasNoValidos.get(k) + ")");
+                writer.println("-------------------------------------------------------");
+                System.out.println("Archivo guardado exitosamente en: " + rutaSalida);
+            } catch (IOException e) {
+                System.out.println("Error al crear el archivo de salida: " + e.getMessage());
+            }
+
+            if(tokensNoValidos.size() > 0){
+
+                Errores.hayError("01", lineasNoValidos);
+
+            }else{
+
+                ArrayList<String> lexemasOrdenados = new ArrayList<>();
+                lexemasOrdenados.addAll(pr);
+                lexemasOrdenados.addAll(ids);
+                lexemasOrdenados.addAll(num);
+                lexemasOrdenados.addAll(ope);
+                lexemasOrdenados.addAll(simb);
+
+                Conversor conversor = new Conversor();
+                ArrayList<Token> tokensParseados = conversor.convertir(lexemasOriginales);
+
+                System.out.println("\n=== Análisis sintáctico ===");
+                Parser parser = new Parser(tokensParseados);
+                parser.S();
+                System.out.println("\nPrograma sintácticamente correcto.");
+
+            }
+
+
+
+        } catch (FileNotFoundException e) {
+            System.out.println("No se encontro el archivo");
+        } catch (IOException e) {
+            System.out.println("Error en el archivo");
+        } finally {
+            try {
+                br.close();
+                fr.close();
+            } catch (IOException e) {
+                System.out.println("Error al cerrar el archivo");
+            }
+        }
+    }
+}
+
+class Tokens {
+
+    public ArrayList<String> identificador(ArrayList<String> lexemas) {
+        ArrayList<String> ids = new ArrayList<String>();
+        for (int i = 0; i < lexemas.size(); i++) {
+            if (lexemas.get(i).matches("^[a-zA-Z][a-zA-Z0-9,]*\\?$")) {
+                ids.add(lexemas.get(i));
+            }
+        }
+        return ids;
+    }
+
+    public ArrayList<String> palabraReservadas(ArrayList<String> lexemas) {
+        String[] pReservadas = {"def", "if", "else", "while", "for", "int", "string", "func"};
+        ArrayList<String> palabrasUsadas = new ArrayList<String>();
+        for (int i = 0; i < lexemas.size(); i++) {
+            for (int y = 0; y < pReservadas.length; y++) {
+                if (lexemas.get(i).equals(pReservadas[y])) {
+                    palabrasUsadas.add(lexemas.get(i));
+                }
+            }
+        }
+        return palabrasUsadas;
+    }
+
+    public ArrayList<String> numero(ArrayList<String> lexemas) {
+        ArrayList<String> numeros = new ArrayList<String>();
+        for (int i = 0; i < lexemas.size(); i++) {
+            if (lexemas.get(i).matches("[0-9]+")) {
+                numeros.add(lexemas.get(i));
+            }
+        }
+        return numeros;
+    }
+
+    public ArrayList<String> operador(ArrayList<String> lexemas) {
+        ArrayList<String> operadores = new ArrayList<String>();
+        for (int i = 0; i < lexemas.size(); i++) {
+            if (lexemas.get(i).matches("[+\\-*/&=|!]")) {
+                operadores.add(lexemas.get(i));
+            }
+        }
+        return operadores;
+    }
+
+    public ArrayList<String> simbolo(ArrayList<String> lexemas) {
+        ArrayList<String> simbolos = new ArrayList<String>();
+        for (int i = 0; i < lexemas.size(); i++) {
+            // Agregados ( y ) para soportar if, while y func
+            if (lexemas.get(i).matches("[\\[\\],;()]")) {
+                simbolos.add(lexemas.get(i));
+            }
+        }
+        return simbolos;
+    }
+}
