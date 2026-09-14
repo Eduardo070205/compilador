@@ -1,4 +1,4 @@
-def resultado? = x? + 10 ;
-if ( x ) [ def y? = 3 ; ]
-while ( resultado? ) [ def z? = 1 ; ]
-func miFuncion? ( ) [ def a? = 7 ; ]
+def int resultado? = x? + 10 ;
+if ( x? ) [ def float y? = 3.5 ; ]
+while ( resultado? ) [ def int z? = 1 ; ]
+func miFuncion? ( ) [ def string mensaje? = "hola mundo desde func" ; ]

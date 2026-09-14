@@ -3,42 +3,46 @@ TOKEN                     | CATEGORÍA            | TIPO DATO
 ------------------------------------------------------------------------------
 resultado?                | Identificador        | string                   
 x?                        | Identificador        | string                   
+x?                        | Identificador        | string                   
 y?                        | Identificador        | string                   
 resultado?                | Identificador        | string                   
 z?                        | Identificador        | string                   
 miFuncion?                | Identificador        | string                   
-a?                        | Identificador        | string                   
+mensaje?                  | Identificador        | string                   
 def                       | Palabra Reservada    | Definicion de variable   
+int                       | Palabra Reservada    | Tipo dato entero         
 if                        | Palabra Reservada    | Sentencia if             
 def                       | Palabra Reservada    | Definicion de variable   
+float                     | Palabra Reservada    | Tipo dato flotante       
 while                     | Palabra Reservada    | Bucle while              
 def                       | Palabra Reservada    | Definicion de variable   
+int                       | Palabra Reservada    | Tipo dato entero         
 func                      | Palabra Reservada    | Funcion                  
 def                       | Palabra Reservada    | Definicion de variable   
-10                        | Número              
-3                         | Número              
-1                         | Número              
-7                         | Número              
-=                         | Operador            
-+                         | Operador            
-=                         | Operador            
-=                         | Operador            
-=                         | Operador            
-;                         | Símbolo             
-(                         | Símbolo             
-)                         | Símbolo             
-[                         | Símbolo             
-;                         | Símbolo             
-]                         | Símbolo             
-(                         | Símbolo             
-)                         | Símbolo             
-[                         | Símbolo             
-;                         | Símbolo             
-]                         | Símbolo             
-(                         | Símbolo             
-)                         | Símbolo             
-[                         | Símbolo             
-;                         | Símbolo             
-]                         | Símbolo             
-x                         | No válido           
+string                    | Palabra Reservada    | Tipo dato cadena         
+10                        | Número               |                          
+3.5                       | Número               |                          
+1                         | Número               |                          
+=                         | Operador             |                          
++                         | Operador             |                          
+=                         | Operador             |                          
+=                         | Operador             |                          
+=                         | Operador             |                          
+;                         | Símbolo              |                          
+(                         | Símbolo              |                          
+)                         | Símbolo              |                          
+[                         | Símbolo              |                          
+;                         | Símbolo              |                          
+]                         | Símbolo              |                          
+(                         | Símbolo              |                          
+)                         | Símbolo              |                          
+[                         | Símbolo              |                          
+;                         | Símbolo              |                          
+]                         | Símbolo              |                          
+(                         | Símbolo              |                          
+)                         | Símbolo              |                          
+[                         | Símbolo              |                          
+;                         | Símbolo              |                          
+]                         | Símbolo              |                          
+"hola mundo desde func"   | Cadena               |                          
 -------------------------------------------------------

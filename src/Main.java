@@ -7,7 +7,8 @@ public class Main {
         ArrayList<String> tokens = new ArrayList<String>();
         ArrayList<String> tokensNoValidos = new ArrayList<String>();
         Tokens token = new Tokens();
-        String cadena = "";
+        StringBuilder cadena = new StringBuilder();
+        boolean dentroDeComillas = false;
         String ruta1 = "archivos/codigo_1.txt";
         File archivo;
         FileReader fr = null;
@@ -26,17 +27,7 @@ public class Main {
             while ((fila = br.readLine()) != null) {
 
                 linea = linea + 1;
-
-                for (int i = 0; i < fila.length(); i++) {
-                    if (fila.charAt(i) != ' ') {
-                        cadena = cadena + fila.charAt(i);
-                    } else {
-                        tokens.add(cadena);
-                        cadena = "";
-                    }
-                }
-                tokens.add(cadena);
-                cadena = "";
+                dentroDeComillas = tokenizarLinea(fila, tokens, cadena, dentroDeComillas);
             }
 
             ArrayList<String> ids  = token.identificador(tokens);
@@ -44,6 +35,7 @@ public class Main {
             ArrayList<String> num  = token.numero(tokens);
             ArrayList<String> ope  = token.operador(tokens);
             ArrayList<String> simb = token.simbolo(tokens);
+            ArrayList<String> str  = token.cadenaTexto(tokens);
 
             ArrayList<String> todosLosValidos = new ArrayList<>();
             todosLosValidos.addAll(ids);
@@ -51,6 +43,7 @@ public class Main {
             todosLosValidos.addAll(num);
             todosLosValidos.addAll(ope);
             todosLosValidos.addAll(simb);
+            todosLosValidos.addAll(str);
 
             ArrayList<String> lexemasOriginales = new ArrayList<>(tokens);
 
@@ -60,6 +53,7 @@ public class Main {
                 if (!t.isEmpty()) tokensNoValidos.add(t);
             }
 
+            /*
             // ── Imprimir resultados léxicos ──────────────────────────
             System.out.println("Identificadores");
             for (String s : ids)  System.out.println(s);
@@ -71,9 +65,11 @@ public class Main {
             for (String s : ope)  System.out.println(s);
             System.out.println("Simbolos");
             for (String s : simb) System.out.println(s);
+            System.out.println("Cadenas de texto");
+            for (String s : str)  System.out.println(s);
             System.out.println("No validos");
             for (String s : tokensNoValidos) System.out.println(s);
-
+            */
 
 
             for (String string : pr) {
@@ -113,6 +109,11 @@ public class Main {
                     pr_tipo.add("Tipo dato cadena");
 
                 }
+                if (string.equals("float")) {
+
+                    pr_tipo.add("Tipo dato flotante");
+
+                }
                 if (string.equals("func")) {
 
                     pr_tipo.add("Funcion");
@@ -142,9 +143,10 @@ public class Main {
 
                 }
 
-                for (String n  : num)  writer.printf("%-25s | %-20s%n", n,  "Número");
-                for (String o  : ope)  writer.printf("%-25s | %-20s%n", o,  "Operador");
-                for (String s  : simb) writer.printf("%-25s | %-20s%n", s,  "Símbolo");
+                for (String n  : num)  writer.printf("%-25s | %-20s | %-25s%n", n,  "Número", "");
+                for (String o  : ope)  writer.printf("%-25s | %-20s | %-25s%n", o,  "Operador", "");
+                for (String s  : simb) writer.printf("%-25s | %-20s | %-25s%n", s,  "Símbolo", "");
+                for (String c  : str)  writer.printf("%-25s | %-20s | %-25s%n", c,  "Cadena", "");
                 for (String nv : tokensNoValidos) writer.printf("%-25s | %-20s%n", nv, "No válido");
                 writer.println("-------------------------------------------------------");
                 System.out.println("Archivo guardado exitosamente en: " + rutaSalida);
@@ -157,17 +159,7 @@ public class Main {
                 while ((fila = br.readLine()) != null) {
 
                     linea = linea + 1;
-
-                    for (int i = 0; i < fila.length(); i++) {
-                        if (fila.charAt(i) != ' ') {
-                            cadena = cadena + fila.charAt(i);
-                        } else {
-                            tokens.add(cadena);
-                            cadena = "";
-                        }
-                    }
-                    tokens.add(cadena);
-                    cadena = "";
+                    dentroDeComillas = tokenizarLinea(fila, tokens, cadena, dentroDeComillas);
                 }
 
                 Errores.hayError("01", linea);
@@ -206,6 +198,26 @@ public class Main {
             }
         }
     }
+
+    // Separa una línea en lexemas por espacios, sin partir el contenido
+    // que va entre comillas dobles (para soportar cadenas con espacios).
+    private static boolean tokenizarLinea(String fila, ArrayList<String> tokens, StringBuilder cadena, boolean dentroDeComillas) {
+        for (int i = 0; i < fila.length(); i++) {
+            char c = fila.charAt(i);
+            if (c == '"') {
+                dentroDeComillas = !dentroDeComillas;
+                cadena.append(c);
+            } else if (c == ' ' && !dentroDeComillas) {
+                tokens.add(cadena.toString());
+                cadena.setLength(0);
+            } else {
+                cadena.append(c);
+            }
+        }
+        tokens.add(cadena.toString());
+        cadena.setLength(0);
+        return dentroDeComillas;
+    }
 }
 
 class Tokens {
@@ -221,7 +233,7 @@ class Tokens {
     }
 
     public ArrayList<String> palabraReservadas(ArrayList<String> lexemas) {
-        String[] pReservadas = {"def", "if", "else", "while", "for", "int", "string", "func"};
+        String[] pReservadas = {"def", "if", "else", "while", "for", "int", "string", "float", "func"};
         ArrayList<String> palabrasUsadas = new ArrayList<String>();
         for (int i = 0; i < lexemas.size(); i++) {
             for (int y = 0; y < pReservadas.length; y++) {
@@ -236,11 +248,23 @@ class Tokens {
     public ArrayList<String> numero(ArrayList<String> lexemas) {
         ArrayList<String> numeros = new ArrayList<String>();
         for (int i = 0; i < lexemas.size(); i++) {
-            if (lexemas.get(i).matches("[0-9]+")) {
+            // Admite enteros (10) y flotantes (3.5)
+            if (lexemas.get(i).matches("[0-9]+(\\.[0-9]+)?")) {
                 numeros.add(lexemas.get(i));
             }
         }
         return numeros;
+    }
+
+    public ArrayList<String> cadenaTexto(ArrayList<String> lexemas) {
+        ArrayList<String> cadenas = new ArrayList<String>();
+        for (int i = 0; i < lexemas.size(); i++) {
+            // Literal de cadena delimitado por comillas dobles, puede contener espacios
+            if (lexemas.get(i).matches("^\".*\"$")) {
+                cadenas.add(lexemas.get(i));
+            }
+        }
+        return cadenas;
     }
 
     public ArrayList<String> operador(ArrayList<String> lexemas) {

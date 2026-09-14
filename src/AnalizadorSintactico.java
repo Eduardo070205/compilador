@@ -77,14 +77,26 @@ class Parser {
         }
     }
 
-    // DEF_VAR → def ID = E ;
+    // DEF_VAR → def TIPO ID = E ;
     private void DEF_VAR() {
         match("DEF");
+        TIPO();
         match("ID");
         match("OP");
         EXP();
         match(";");
-        System.out.println("Declaración de variable válida");
+        //System.out.println("Declaración de variable válida");
+    }
+
+    // TIPO → int | string | float
+    private void TIPO() {
+        String tipoActual = actual().getTipo();
+        if (tipoActual.equals("INT") || tipoActual.equals("STRING") || tipoActual.equals("FLOAT")) {
+            //System.out.println("  match(TIPO) ← " + actual().getValor());
+            i++;
+        } else {
+            error("int, string o float");
+        }
     }
 
     // E → T E'
@@ -93,7 +105,7 @@ class Parser {
         EXP_PRIMA();
     }
 
-    // T → ID | NUM
+    // T → ID | NUM | STR
     private void T() {
         if (actual().getTipo().equals("ID")){
             match("ID");  return;
@@ -101,7 +113,10 @@ class Parser {
         if (actual().getTipo().equals("NUM")){
             match("NUM"); return;
         }
-        error("identificador o número");
+        if (actual().getTipo().equals("STR")){
+            match("STR"); return;
+        }
+        error("identificador, número o cadena");
     }
 
     // E' → OP T E' | ε
@@ -122,7 +137,7 @@ class Parser {
         match("[");
         S();
         match("]");
-        System.out.println("Sentencia if válida");
+        //System.out.println("Sentencia if válida");
     }
 
     // WHILE_EST → while ( EXP ) [ S ]
@@ -134,7 +149,7 @@ class Parser {
         match("[");
         S();
         match("]");
-        System.out.println("Sentencia while válida");
+        //System.out.println("Sentencia while válida");
     }
 
     // FUNC_DEF → func ID ( ) [ S ]
@@ -146,12 +161,12 @@ class Parser {
         match("[");
         S();
         match("]");
-        System.out.println("Definición de función válida");
+        //System.out.println("Definición de función válida");
     }
 
     private void match(String tipoEsperado) {
         if (actual().getTipo().equals(tipoEsperado)) {
-            System.out.println("  match(" + tipoEsperado + ") ← " + actual().getValor());
+            //System.out.println("  match(" + tipoEsperado + ") ← " + actual().getValor());
             i++;
         } else {
             error(tipoEsperado);
@@ -178,6 +193,7 @@ class Conversor {
         ArrayList<String> nums = clasificador.numero(lexemas);
         ArrayList<String> opes = clasificador.operador(lexemas);
         ArrayList<String> sibs = clasificador.simbolo(lexemas);
+        ArrayList<String> strs = clasificador.cadenaTexto(lexemas);
 
         for (String lexema : lexemas) {
             if (lexema.isEmpty()) continue;
@@ -188,6 +204,8 @@ class Conversor {
                 tokens.add(new Token("ID", lexema));
             } else if (nums.contains(lexema)) {
                 tokens.add(new Token("NUM", lexema));
+            } else if (strs.contains(lexema)) {
+                tokens.add(new Token("STR", lexema));
             } else if (opes.contains(lexema)) {
                 tokens.add(new Token("OP", lexema));
             } else if (sibs.contains(lexema)) {
