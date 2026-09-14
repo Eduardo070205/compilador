@@ -12,10 +12,12 @@ class Token {
 
     private String tipo;
     private String valor;
+    private int linea;
 
-    public Token(String tipo, String valor) {
+    public Token(String tipo, String valor, int linea) {
         this.tipo = tipo;
         this.valor = valor;
+        this.linea = linea;
     }
 
     public String getTipo() {
@@ -29,9 +31,15 @@ class Token {
 
     }
 
+    public int getLinea() {
+
+        return linea;
+
+    }
+
     @Override
     public String toString() {
-        return "[" + tipo + " : " + valor + "]";
+        return "[" + tipo + " : " + valor + " (línea " + linea + ")]";
     }
 }
 
@@ -39,7 +47,7 @@ class Parser {
 
     private ArrayList<Token> tokens;
     private int i = 0;
-    private int linea = 0;
+    private int ultimaLinea = 0;
 
     public Parser(ArrayList<Token> tokens) {
         this.tokens = tokens;
@@ -47,7 +55,7 @@ class Parser {
 
     private Token actual() {
         if (i < tokens.size()) return tokens.get(i);
-        return new Token("EOF", "");
+        return new Token("EOF", "", ultimaLinea);
     }
 
     // S → SENTENCIA | SENTENCIA S
@@ -60,7 +68,6 @@ class Parser {
             return;
         }
         SENTENCIA();
-        linea = linea + 1;
         if (!actual().getTipo().equals("EOF") && !actual().getTipo().equals("]")) {
             S();
         }
@@ -93,6 +100,7 @@ class Parser {
         String tipoActual = actual().getTipo();
         if (tipoActual.equals("INT") || tipoActual.equals("STRING") || tipoActual.equals("FLOAT")) {
             //System.out.println("  match(TIPO) ← " + actual().getValor());
+            ultimaLinea = actual().getLinea();
             i++;
         } else {
             error("int, string o float");
@@ -167,6 +175,7 @@ class Parser {
     private void match(String tipoEsperado) {
         if (actual().getTipo().equals(tipoEsperado)) {
             //System.out.println("  match(" + tipoEsperado + ") ← " + actual().getValor());
+            ultimaLinea = actual().getLinea();
             i++;
         } else {
             error(tipoEsperado);
@@ -174,7 +183,7 @@ class Parser {
     }
 
     private void error(String esperado) {
-        System.out.println("\n✗ Error sintáctico en la linea :" + linea);
+        System.out.println("\n✗ Error sintáctico en la linea :" + actual().getLinea());
         System.out.println("  Se esperaba : " + esperado);
         System.out.println("  Se encontró : " + actual().getTipo() + " (\"" + actual().getValor() + "\")");
         System.exit(1);
@@ -183,7 +192,7 @@ class Parser {
 
 class Conversor {
 
-    public ArrayList<Token> convertir(ArrayList<String> lexemas) {
+    public ArrayList<Token> convertir(ArrayList<String> lexemas, ArrayList<Integer> lineas) {
 
         Tokens clasificador = new Tokens();
         ArrayList<Token> tokens = new ArrayList<>();
@@ -195,23 +204,25 @@ class Conversor {
         ArrayList<String> sibs = clasificador.simbolo(lexemas);
         ArrayList<String> strs = clasificador.cadenaTexto(lexemas);
 
-        for (String lexema : lexemas) {
+        for (int idx = 0; idx < lexemas.size(); idx++) {
+            String lexema = lexemas.get(idx);
             if (lexema.isEmpty()) continue;
+            int linea = lineas.get(idx);
 
             if (prs.contains(lexema)) {
-                tokens.add(new Token(lexema.toUpperCase(), lexema));
+                tokens.add(new Token(lexema.toUpperCase(), lexema, linea));
             } else if (ids.contains(lexema)) {
-                tokens.add(new Token("ID", lexema));
+                tokens.add(new Token("ID", lexema, linea));
             } else if (nums.contains(lexema)) {
-                tokens.add(new Token("NUM", lexema));
+                tokens.add(new Token("NUM", lexema, linea));
             } else if (strs.contains(lexema)) {
-                tokens.add(new Token("STR", lexema));
+                tokens.add(new Token("STR", lexema, linea));
             } else if (opes.contains(lexema)) {
-                tokens.add(new Token("OP", lexema));
+                tokens.add(new Token("OP", lexema, linea));
             } else if (sibs.contains(lexema)) {
-                tokens.add(new Token(lexema, lexema));
+                tokens.add(new Token(lexema, lexema, linea));
             } else {
-                tokens.add(new Token("NO_VALIDO", lexema));
+                tokens.add(new Token("NO_VALIDO", lexema, linea));
             }
         }
 

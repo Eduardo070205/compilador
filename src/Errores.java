@@ -4,24 +4,28 @@ public class Errores {
 
     public static void hayError(String tipoError, int linea){
 
-        if(tipoError == "01"){
+        if(tipoError.equals("01")){
 
-            errLexico(linea);
+            errLexico(linea, "");
 
-        } else if (tipoError == "02") {
+        } else if (tipoError.equals("02")) {
 
             errSintactico(linea);
 
-        }else if (tipoError == "00"){
+        }else if (tipoError.equals("00")){
 
             System.out.println("Sin errores encontrados");
 
         }
 
     }
-    public static void errLexico(int linea){
+    public static void errLexico(int linea, String token){
 
-        System.out.println("Se encontro un error Lexico en la linea:  " + linea);
+        if (token.isEmpty()) {
+            System.out.println("Se encontro un error Lexico en la linea:  " + linea);
+        } else {
+            System.out.println("Se encontro un error Lexico en la linea " + linea + ": token no valido \"" + token + "\"");
+        }
 
     }
 

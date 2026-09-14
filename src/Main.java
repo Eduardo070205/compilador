@@ -5,7 +5,9 @@ public class Main {
     public static void main(String[] args) {
 
         ArrayList<String> tokens = new ArrayList<String>();
+        ArrayList<Integer> lineas = new ArrayList<Integer>();
         ArrayList<String> tokensNoValidos = new ArrayList<String>();
+        ArrayList<Integer> lineasNoValidos = new ArrayList<Integer>();
         Tokens token = new Tokens();
         StringBuilder cadena = new StringBuilder();
         boolean dentroDeComillas = false;
@@ -27,7 +29,7 @@ public class Main {
             while ((fila = br.readLine()) != null) {
 
                 linea = linea + 1;
-                dentroDeComillas = tokenizarLinea(fila, tokens, cadena, dentroDeComillas);
+                dentroDeComillas = tokenizarLinea(fila, linea, tokens, lineas, cadena, dentroDeComillas);
             }
 
             ArrayList<String> ids  = token.identificador(tokens);
@@ -46,11 +48,14 @@ public class Main {
             todosLosValidos.addAll(str);
 
             ArrayList<String> lexemasOriginales = new ArrayList<>(tokens);
+            ArrayList<Integer> lineasOriginales = new ArrayList<>(lineas);
 
-            tokens.removeAll(todosLosValidos);
-
-            for (String t : tokens) {
-                if (!t.isEmpty()) tokensNoValidos.add(t);
+            for (int idx = 0; idx < tokens.size(); idx++) {
+                String t = tokens.get(idx);
+                if (!t.isEmpty() && !todosLosValidos.contains(t)) {
+                    tokensNoValidos.add(t);
+                    lineasNoValidos.add(lineas.get(idx));
+                }
             }
 
             /*
@@ -154,27 +159,16 @@ public class Main {
                 System.out.println("Error al crear el archivo de salida: " + e.getMessage());
             }
 
-            if(tokensNoValidos.size() > 0){
+            if (!tokensNoValidos.isEmpty()) {
 
-                while ((fila = br.readLine()) != null) {
-
-                    linea = linea + 1;
-                    dentroDeComillas = tokenizarLinea(fila, tokens, cadena, dentroDeComillas);
+                for (int idx = 0; idx < tokensNoValidos.size(); idx++) {
+                    Errores.errLexico(lineasNoValidos.get(idx), tokensNoValidos.get(idx));
                 }
-
-                Errores.hayError("01", linea);
 
             }else{
 
-                ArrayList<String> lexemasOrdenados = new ArrayList<>();
-                lexemasOrdenados.addAll(pr);
-                lexemasOrdenados.addAll(ids);
-                lexemasOrdenados.addAll(num);
-                lexemasOrdenados.addAll(ope);
-                lexemasOrdenados.addAll(simb);
-
                 Conversor conversor = new Conversor();
-                ArrayList<Token> tokensParseados = conversor.convertir(lexemasOriginales);
+                ArrayList<Token> tokensParseados = conversor.convertir(lexemasOriginales, lineasOriginales);
 
                 System.out.println("\n=== Análisis sintáctico ===");
                 Parser parser = new Parser(tokensParseados);
@@ -200,8 +194,9 @@ public class Main {
     }
 
     // Separa una línea en lexemas por espacios, sin partir el contenido
-    // que va entre comillas dobles (para soportar cadenas con espacios).
-    private static boolean tokenizarLinea(String fila, ArrayList<String> tokens, StringBuilder cadena, boolean dentroDeComillas) {
+    // que va entre comillas dobles (para soportar cadenas con espacios),
+    // registrando en "lineas" la línea real de origen de cada lexema.
+    private static boolean tokenizarLinea(String fila, int numeroLinea, ArrayList<String> tokens, ArrayList<Integer> lineas, StringBuilder cadena, boolean dentroDeComillas) {
         for (int i = 0; i < fila.length(); i++) {
             char c = fila.charAt(i);
             if (c == '"') {
@@ -209,12 +204,14 @@ public class Main {
                 cadena.append(c);
             } else if (c == ' ' && !dentroDeComillas) {
                 tokens.add(cadena.toString());
+                lineas.add(numeroLinea);
                 cadena.setLength(0);
             } else {
                 cadena.append(c);
             }
         }
         tokens.add(cadena.toString());
+        lineas.add(numeroLinea);
         cadena.setLength(0);
         return dentroDeComillas;
     }
