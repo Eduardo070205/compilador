@@ -1,3 +1,22 @@
 def int x? = 10 ;
 def string saludo? = "hola a todos" ;
 def string nombre? = "eduardo de la cruz" ;
+for ( x? > 11 )
+[
+
+    print ( saludo? ) ;
+
+]
+
+if ( x? > 11 )
+[
+
+    print ( saludo? ) ;
+
+]
+else
+[
+
+    print ( saludo? ) ;
+
+]

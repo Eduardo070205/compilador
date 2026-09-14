@@ -124,12 +124,17 @@ public class Main {
                     pr_tipo.add("Funcion");
 
                 }
+                if (string.equals("print")) {
+
+                    pr_tipo.add("Impresion en consola");
+
+                }
 
             }
 
-            System.out.println("\npr_tipo:");
+            //System.out.println("\npr_tipo:");
             for (int i = 0; i < pr_tipo.size(); i++) {
-                System.out.println("[" + i + "] " + pr_tipo.get(i));
+                //System.out.println("[" + i + "] " + pr_tipo.get(i));
             }
 
             int a = 0;
@@ -239,7 +244,7 @@ class Tokens {
     }
 
     public ArrayList<String> palabraReservadas(ArrayList<String> lexemas) {
-        String[] pReservadas = {"def", "if", "else", "while", "for", "int", "string", "float", "func"};
+        String[] pReservadas = {"def", "if", "else", "while", "for", "int", "string", "float", "func", "print"};
         ArrayList<String> palabrasUsadas = new ArrayList<String>();
         for (int i = 0; i < lexemas.size(); i++) {
             for (int y = 0; y < pReservadas.length; y++) {
@@ -276,7 +281,8 @@ class Tokens {
     public ArrayList<String> operador(ArrayList<String> lexemas) {
         ArrayList<String> operadores = new ArrayList<String>();
         for (int i = 0; i < lexemas.size(); i++) {
-            if (lexemas.get(i).matches("[+\\-*/&=|!]")) {
+            // Incluye relacionales de comparación: > < >= <= == !=
+            if (lexemas.get(i).matches("==|!=|>=|<=|[+\\-*/&=|!<>]")) {
                 operadores.add(lexemas.get(i));
             }
         }

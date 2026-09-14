@@ -4,19 +4,53 @@ TOKEN                     | CATEGORÍA            | TIPO DATO
 x?                        | Identificador        | string                   
 saludo?                   | Identificador        | string                   
 nombre?                   | Identificador        | string                   
+x?                        | Identificador        | string                   
+saludo?                   | Identificador        | string                   
+x?                        | Identificador        | string                   
+saludo?                   | Identificador        | string                   
+saludo?                   | Identificador        | string                   
 def                       | Palabra Reservada    | Definicion de variable   
 int                       | Palabra Reservada    | Tipo dato entero         
 def                       | Palabra Reservada    | Definicion de variable   
 string                    | Palabra Reservada    | Tipo dato cadena         
 def                       | Palabra Reservada    | Definicion de variable   
 string                    | Palabra Reservada    | Tipo dato cadena         
+for                       | Palabra Reservada    | Bucle for                
+print                     | Palabra Reservada    | Impresion en consola     
+if                        | Palabra Reservada    | Sentencia if             
+print                     | Palabra Reservada    | Impresion en consola     
+else                      | Palabra Reservada    | Sentencia else           
+print                     | Palabra Reservada    | Impresion en consola     
 10                        | Número               |                          
+11                        | Número               |                          
+11                        | Número               |                          
 =                         | Operador             |                          
 =                         | Operador             |                          
 =                         | Operador             |                          
+>                         | Operador             |                          
+>                         | Operador             |                          
 ;                         | Símbolo              |                          
 ;                         | Símbolo              |                          
 ;                         | Símbolo              |                          
+(                         | Símbolo              |                          
+)                         | Símbolo              |                          
+[                         | Símbolo              |                          
+(                         | Símbolo              |                          
+)                         | Símbolo              |                          
+;                         | Símbolo              |                          
+]                         | Símbolo              |                          
+(                         | Símbolo              |                          
+)                         | Símbolo              |                          
+[                         | Símbolo              |                          
+(                         | Símbolo              |                          
+)                         | Símbolo              |                          
+;                         | Símbolo              |                          
+]                         | Símbolo              |                          
+[                         | Símbolo              |                          
+(                         | Símbolo              |                          
+)                         | Símbolo              |                          
+;                         | Símbolo              |                          
+]                         | Símbolo              |                          
 "hola a todos"            | Cadena               |                          
 "eduardo de la cruz"      | Cadena               |                          
 -------------------------------------------------------

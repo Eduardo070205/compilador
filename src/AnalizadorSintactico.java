@@ -73,14 +73,16 @@ class Parser {
         }
     }
 
-    // SENTENCIA → DEF_VAR | IF_EST | WHILE_EST | FUNC_DEF
+    // SENTENCIA → DEF_VAR | IF_EST | WHILE_EST | FOR_EST | FUNC_DEF | PRINT_EST
     private void SENTENCIA() {
         switch (actual().getTipo()) {
             case "DEF"   -> DEF_VAR();
             case "IF"    -> IF_EST();
             case "WHILE" -> WHILE_EST();
+            case "FOR"   -> FOR_EST();
             case "FUNC"  -> FUNC_DEF();
-            default -> error("def, if, while o func");
+            case "PRINT" -> PRINT_EST();
+            default -> error("def, if, while, for, func o print");
         }
     }
 
@@ -127,37 +129,69 @@ class Parser {
         error("identificador, número o cadena");
     }
 
-    // E' → OP T E' | ε
+    // E' → OP T E' | ε  (OP aritmético; excluye "=" y los relacionales)
     private void EXP_PRIMA() {
-        if (actual().getTipo().equals("OP") && !actual().getValor().equals("=")) {
+        if (actual().getTipo().equals("OP") && !actual().getValor().equals("=") && !esRelacional(actual().getValor())) {
             match("OP");
             T();
             EXP_PRIMA();
         }
     }
 
-    // IF_EST → if ( EXP ) [ S ]
+    private boolean esRelacional(String valor) {
+        return valor.equals(">") || valor.equals("<") || valor.equals(">=")
+            || valor.equals("<=") || valor.equals("==") || valor.equals("!=");
+    }
+
+    // CONDICION → EXP ( OP_REL EXP )?
+    private void CONDICION() {
+        EXP();
+        if (actual().getTipo().equals("OP") && esRelacional(actual().getValor())) {
+            match("OP");
+            EXP();
+        }
+    }
+
+    // IF_EST → if ( CONDICION ) [ S ] ( else [ S ] )?
     private void IF_EST() {
         match("IF");
         match("(");
-        EXP();
+        CONDICION();
         match(")");
         match("[");
         S();
         match("]");
+        if (actual().getTipo().equals("ELSE")) {
+            match("ELSE");
+            match("[");
+            S();
+            match("]");
+        }
         //System.out.println("Sentencia if válida");
     }
 
-    // WHILE_EST → while ( EXP ) [ S ]
+    // WHILE_EST → while ( CONDICION ) [ S ]
     private void WHILE_EST() {
         match("WHILE");
         match("(");
-        EXP();
+        CONDICION();
         match(")");
         match("[");
         S();
         match("]");
         //System.out.println("Sentencia while válida");
+    }
+
+    // FOR_EST → for ( CONDICION ) [ S ]
+    private void FOR_EST() {
+        match("FOR");
+        match("(");
+        CONDICION();
+        match(")");
+        match("[");
+        S();
+        match("]");
+        //System.out.println("Sentencia for válida");
     }
 
     // FUNC_DEF → func ID ( ) [ S ]
@@ -170,6 +204,16 @@ class Parser {
         S();
         match("]");
         //System.out.println("Definición de función válida");
+    }
+
+    // PRINT_EST → print ( EXP ) ;
+    private void PRINT_EST() {
+        match("PRINT");
+        match("(");
+        EXP();
+        match(")");
+        match(";");
+        //System.out.println("Sentencia print válida");
     }
 
     private void match(String tipoEsperado) {
