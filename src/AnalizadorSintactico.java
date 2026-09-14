@@ -99,14 +99,17 @@ class Parser {
 
     // TIPO → int | string | float
     private void TIPO() {
-        String tipoActual = actual().getTipo();
-        if (tipoActual.equals("INT") || tipoActual.equals("STRING") || tipoActual.equals("FLOAT")) {
+        if (esTipo(actual().getTipo())) {
             //System.out.println("  match(TIPO) ← " + actual().getValor());
             ultimaLinea = actual().getLinea();
             i++;
         } else {
             error("int, string o float");
         }
+    }
+
+    private boolean esTipo(String tipo) {
+        return tipo.equals("INT") || tipo.equals("STRING") || tipo.equals("FLOAT");
     }
 
     // E → T E'
@@ -194,16 +197,40 @@ class Parser {
         //System.out.println("Sentencia for válida");
     }
 
-    // FUNC_DEF → func ID ( ) [ S ]
+    // FUNC_DEF → func ID ( PARAMS ) [ S ]
     private void FUNC_DEF() {
         match("FUNC");
         match("ID");
         match("(");
+        PARAMS();
         match(")");
         match("[");
         S();
         match("]");
         //System.out.println("Definición de función válida");
+    }
+
+    // PARAMS → PARAM PARAMS' | ε
+    private void PARAMS() {
+        if (esTipo(actual().getTipo())) {
+            PARAM();
+            PARAMS_PRIMA();
+        }
+    }
+
+    // PARAMS' → , PARAM PARAMS' | ε
+    private void PARAMS_PRIMA() {
+        if (actual().getTipo().equals(",")) {
+            match(",");
+            PARAM();
+            PARAMS_PRIMA();
+        }
+    }
+
+    // PARAM → TIPO ID
+    private void PARAM() {
+        TIPO();
+        match("ID");
     }
 
     // PRINT_EST → print ( EXP ) ;
