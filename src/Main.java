@@ -184,6 +184,8 @@ public class Main {
                 Parser parser = new Parser(tokensParseados);
                 parser.S();
                 System.out.println("\nPrograma sintácticamente correcto.");
+                parser.getTabla().imprimir();
+                parser.getTabla().imprimirArchivo("archivos/tabla_simbolos.txt");
 
             }
 

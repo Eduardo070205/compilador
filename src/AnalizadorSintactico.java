@@ -1,4 +1,7 @@
 import java.util.ArrayList;
+import java.io.PrintWriter;
+import java.io.FileWriter;
+import java.io.IOException;
 
 /*
     MATERIA: LEGUAJES Y AUTÓMATAS
@@ -43,14 +46,117 @@ class Token {
     }
 }
 
+class Simbolo {
+
+    private String nombre;
+    private String tipo;
+    private String categoria;
+    private String ambito;
+    private int linea;
+    private String valor;
+
+    public Simbolo(String nombre, String tipo, String categoria, String ambito, int linea, String valor) {
+        this.nombre = nombre;
+        this.tipo = tipo;
+        this.categoria = categoria;
+        this.ambito = ambito;
+        this.linea = linea;
+        this.valor = valor;
+    }
+
+    public String getNombre() { return nombre; }
+    public String getTipo() { return tipo; }
+    public String getCategoria() { return categoria; }
+    public String getAmbito() { return ambito; }
+    public int getLinea() { return linea; }
+    public String getValor() { return valor; }
+
+    @Override
+    public String toString() {
+        return String.format("%-15s | %-8s | %-10s | %-12s | %-5d | %s",
+                nombre, tipo, categoria, ambito, linea, valor);
+    }
+}
+
+class TablaSimbolos {
+
+    private ArrayList<Simbolo> simbolos = new ArrayList<>();
+    private ArrayList<String> pilaAmbitos = new ArrayList<>();
+
+    public TablaSimbolos() {
+        pilaAmbitos.add("global");
+    }
+
+    public void entrarAmbito(String nombre) {
+        pilaAmbitos.add(nombre);
+    }
+
+    public void salirAmbito() {
+        if (pilaAmbitos.size() > 1) {
+            pilaAmbitos.remove(pilaAmbitos.size() - 1);
+        }
+    }
+
+    private String ambitoActual() {
+        return pilaAmbitos.get(pilaAmbitos.size() - 1);
+    }
+
+    public void agregar(String nombre, String tipo, String categoria, int linea, String valor) {
+        simbolos.add(new Simbolo(nombre, tipo, categoria, ambitoActual(), linea, valor));
+    }
+
+    public ArrayList<Simbolo> getSimbolos() {
+        return simbolos;
+    }
+
+    public void imprimir() {
+        System.out.println("\n=== Tabla de símbolos ===");
+        System.out.printf("%-15s | %-8s | %-10s | %-12s | %-5s | %s%n",
+                "NOMBRE", "TIPO", "CATEGORIA", "AMBITO", "LINEA", "VALOR");
+        for (Simbolo s : simbolos) {
+            System.out.println(s);
+        }
+    }
+
+    public void imprimirArchivo(String ruta) {
+        try (PrintWriter writer = new PrintWriter(new FileWriter(ruta))) {
+            writer.println("------------------------------------------------------------------------------");
+            writer.printf("%-15s | %-8s | %-10s | %-12s | %-5s | %s%n",
+                    "NOMBRE", "TIPO", "CATEGORIA", "AMBITO", "LINEA", "VALOR");
+            writer.println("------------------------------------------------------------------------------");
+            for (Simbolo s : simbolos) {
+                writer.println(s);
+            }
+            writer.println("------------------------------------------------------------------------------");
+            System.out.println("Archivo guardado exitosamente en: " + ruta);
+        } catch (IOException e) {
+            System.out.println("Error al crear el archivo de la tabla de símbolos: " + e.getMessage());
+        }
+    }
+}
+
 class Parser {
 
     private ArrayList<Token> tokens;
     private int i = 0;
     private int ultimaLinea = 0;
+    private TablaSimbolos tabla = new TablaSimbolos();
 
     public Parser(ArrayList<Token> tokens) {
         this.tokens = tokens;
+    }
+
+    public TablaSimbolos getTabla() {
+        return tabla;
+    }
+
+    private String construirTexto(int desde, int hasta) {
+        StringBuilder sb = new StringBuilder();
+        for (int idx = desde; idx < hasta && idx < tokens.size(); idx++) {
+            if (idx > desde) sb.append(" ");
+            sb.append(tokens.get(idx).getValor());
+        }
+        return sb.toString();
     }
 
     private Token actual() {
@@ -89,11 +195,17 @@ class Parser {
     // DEF_VAR → def TIPO ID = E ;
     private void DEF_VAR() {
         match("DEF");
+        String tipoDecl = actual().getValor();
         TIPO();
+        String nombre = actual().getValor();
+        int lineaDecl = actual().getLinea();
         match("ID");
         match("OP");
+        int inicioExp = i;
         EXP();
+        String valorExp = construirTexto(inicioExp, i);
         match(";");
+        tabla.agregar(nombre, tipoDecl, "Variable", lineaDecl, valorExp);
         //System.out.println("Declaración de variable válida");
     }
 
@@ -200,13 +312,20 @@ class Parser {
     // FUNC_DEF → func ID ( PARAMS ) [ S ]
     private void FUNC_DEF() {
         match("FUNC");
+        String nombreFuncion = actual().getValor();
+        int lineaFuncion = actual().getLinea();
         match("ID");
         match("(");
+        tabla.entrarAmbito(nombreFuncion);
+        int inicioParams = i;
         PARAMS();
+        String textoParams = construirTexto(inicioParams, i);
         match(")");
         match("[");
         S();
         match("]");
+        tabla.salirAmbito();
+        tabla.agregar(nombreFuncion, "-", "Funcion", lineaFuncion, "(" + textoParams + ")");
         //System.out.println("Definición de función válida");
     }
 
@@ -229,8 +348,12 @@ class Parser {
 
     // PARAM → TIPO ID
     private void PARAM() {
+        String tipoParam = actual().getValor();
         TIPO();
+        String nombreParam = actual().getValor();
+        int lineaParam = actual().getLinea();
         match("ID");
+        tabla.agregar(nombreParam, tipoParam, "Parametro", lineaParam, "");
     }
 
     // PRINT_EST → print ( EXP ) ;

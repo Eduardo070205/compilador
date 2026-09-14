@@ -1,0 +1,7 @@
+------------------------------------------------------------------------------
+NOMBRE          | TIPO     | CATEGORIA  | AMBITO       | LINEA | VALOR
+------------------------------------------------------------------------------
+x?              | int      | Variable   | global       | 1     | 10
+saludo?         | string   | Variable   | global       | 2     | "hola a todos"
+nombre?         | string   | Variable   | global       | 3     | "eduardo de la cruz"
+------------------------------------------------------------------------------
