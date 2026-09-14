@@ -1,13 +1,3 @@
-hola
-def estas?
-mi nombre es eduardo
-23
-gala2
-++
-+
---
--
-**
-*
-[]
-[
+def int x? = 10 ;
+def string saludo? = "hola a todos" ;
+def string nombre? = "eduardo de la cruz" ;

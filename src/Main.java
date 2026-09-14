@@ -11,7 +11,7 @@ public class Main {
         Tokens token = new Tokens();
         StringBuilder cadena = new StringBuilder();
         boolean dentroDeComillas = false;
-        String ruta1 = "archivos/codigo_1.txt";
+        String ruta1 = "archivos/codigo_2.txt";
         File archivo;
         FileReader fr = null;
         String rutaSalida = "archivos/salida.txt";
@@ -162,7 +162,12 @@ public class Main {
             if (!tokensNoValidos.isEmpty()) {
 
                 for (int idx = 0; idx < tokensNoValidos.size(); idx++) {
-                    Errores.errLexico(lineasNoValidos.get(idx), tokensNoValidos.get(idx));
+                    String t = tokensNoValidos.get(idx);
+                    if (t.startsWith("\"")) {
+                        Errores.errCadenaSinCerrar(lineasNoValidos.get(idx), t);
+                    } else {
+                        Errores.errLexico(lineasNoValidos.get(idx), t);
+                    }
                 }
 
             }else{
@@ -210,6 +215,10 @@ public class Main {
                 cadena.append(c);
             }
         }
+        // Una cadena no puede cruzar de línea: si sigue "abierta" al terminar
+        // la línea, se corta aquí para que el lexema quede confinado a esta
+        // línea y no arrastre el contenido de las líneas siguientes.
+        dentroDeComillas = false;
         tokens.add(cadena.toString());
         lineas.add(numeroLinea);
         cadena.setLength(0);
@@ -222,7 +231,7 @@ class Tokens {
     public ArrayList<String> identificador(ArrayList<String> lexemas) {
         ArrayList<String> ids = new ArrayList<String>();
         for (int i = 0; i < lexemas.size(); i++) {
-            if (lexemas.get(i).matches("^[a-zA-Z][a-zA-Z0-9,]*\\?$")) {
+            if (lexemas.get(i).matches("^[a-zA-Z][a-zA-Z0-9]*\\?$")) {
                 ids.add(lexemas.get(i));
             }
         }

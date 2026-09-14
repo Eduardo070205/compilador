@@ -29,6 +29,12 @@ public class Errores {
 
     }
 
+    public static void errCadenaSinCerrar(int linea, String token){
+
+        System.out.println("Se encontro un error Lexico en la linea " + linea + ": cadena de texto sin comilla de cierre \"" + token + "\"");
+
+    }
+
     public static void errSintactico(int linea){
 
         System.out.println("Se encontro un error Sintanctico en la linea: " + linea);
