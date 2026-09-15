@@ -1,6 +1,8 @@
 import java.io.*;
 import java.util.ArrayList;
 
+
+
 public class Main {
     public static void main(String[] args) {
 
@@ -11,7 +13,7 @@ public class Main {
         Tokens token = new Tokens();
         StringBuilder cadena = new StringBuilder();
         boolean dentroDeComillas = false;
-        String ruta1 = "archivos/codigo_2.txt";
+        String ruta1 = "archivos/codigo_1.txt";
         File archivo;
         FileReader fr = null;
         String rutaSalida = "archivos/salida.txt";
@@ -179,6 +181,8 @@ public class Main {
 
                 Conversor conversor = new Conversor();
                 ArrayList<Token> tokensParseados = conversor.convertir(lexemasOriginales, lineasOriginales);
+
+                new ValidadorDelimitadores().verificar(tokensParseados);
 
                 System.out.println("\n=== Análisis sintáctico ===");
                 Parser parser = new Parser(tokensParseados);

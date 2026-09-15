@@ -1,24 +1,5 @@
 public class Errores {
 
-
-
-    public static void hayError(String tipoError, int linea){
-
-        if(tipoError.equals("01")){
-
-            errLexico(linea, "");
-
-        } else if (tipoError.equals("02")) {
-
-            errSintactico(linea);
-
-        }else if (tipoError.equals("00")){
-
-            System.out.println("Sin errores encontrados");
-
-        }
-
-    }
     public static void errLexico(int linea, String token){
 
         if (token.isEmpty()) {

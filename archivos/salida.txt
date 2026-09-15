@@ -1,56 +1,93 @@
 ------------------------------------------------------------------------------
 TOKEN                     | CATEGORÍA            | TIPO DATO                
 ------------------------------------------------------------------------------
-x?                        | Identificador        | string                   
-saludo?                   | Identificador        | string                   
-nombre?                   | Identificador        | string                   
-x?                        | Identificador        | string                   
-saludo?                   | Identificador        | string                   
-x?                        | Identificador        | string                   
-saludo?                   | Identificador        | string                   
-saludo?                   | Identificador        | string                   
+contador?                 | Identificador        | string                   
+promedio?                 | Identificador        | string                   
+mensaje?                  | Identificador        | string                   
+contador?                 | Identificador        | string                   
+estado?                   | Identificador        | string                   
+contador?                 | Identificador        | string                   
+temp?                     | Identificador        | string                   
+contador?                 | Identificador        | string                   
+i?                        | Identificador        | string                   
+sumar?                    | Identificador        | string                   
+a?                        | Identificador        | string                   
+b?                        | Identificador        | string                   
+resultado?                | Identificador        | string                   
+a?                        | Identificador        | string                   
+b?                        | Identificador        | string                   
+resultado?                | Identificador        | string                   
+mensaje?                  | Identificador        | string                   
 def                       | Palabra Reservada    | Definicion de variable   
 int                       | Palabra Reservada    | Tipo dato entero         
 def                       | Palabra Reservada    | Definicion de variable   
-string                    | Palabra Reservada    | Tipo dato cadena         
+float                     | Palabra Reservada    | Tipo dato flotante       
 def                       | Palabra Reservada    | Definicion de variable   
 string                    | Palabra Reservada    | Tipo dato cadena         
-for                       | Palabra Reservada    | Bucle for                
-print                     | Palabra Reservada    | Impresion en consola     
 if                        | Palabra Reservada    | Sentencia if             
+def                       | Palabra Reservada    | Definicion de variable   
+string                    | Palabra Reservada    | Tipo dato cadena         
+while                     | Palabra Reservada    | Bucle while              
+def                       | Palabra Reservada    | Definicion de variable   
+int                       | Palabra Reservada    | Tipo dato entero         
+for                       | Palabra Reservada    | Bucle for                
+def                       | Palabra Reservada    | Definicion de variable   
+int                       | Palabra Reservada    | Tipo dato entero         
+func                      | Palabra Reservada    | Funcion                  
+int                       | Palabra Reservada    | Tipo dato entero         
+int                       | Palabra Reservada    | Tipo dato entero         
+def                       | Palabra Reservada    | Definicion de variable   
+int                       | Palabra Reservada    | Tipo dato entero         
 print                     | Palabra Reservada    | Impresion en consola     
-else                      | Palabra Reservada    | Sentencia else           
 print                     | Palabra Reservada    | Impresion en consola     
+0                         | Número               |                          
+3.5                       | Número               |                          
+0                         | Número               |                          
+5                         | Número               |                          
+1                         | Número               |                          
 10                        | Número               |                          
-11                        | Número               |                          
-11                        | Número               |                          
+0                         | Número               |                          
 =                         | Operador             |                          
 =                         | Operador             |                          
 =                         | Operador             |                          
->                         | Operador             |                          
->                         | Operador             |                          
+==                        | Operador             |                          
+=                         | Operador             |                          
+<                         | Operador             |                          
+=                         | Operador             |                          
+<                         | Operador             |                          
+=                         | Operador             |                          
+=                         | Operador             |                          
++                         | Operador             |                          
 ;                         | Símbolo              |                          
 ;                         | Símbolo              |                          
 ;                         | Símbolo              |                          
 (                         | Símbolo              |                          
 )                         | Símbolo              |                          
 [                         | Símbolo              |                          
-(                         | Símbolo              |                          
-)                         | Símbolo              |                          
 ;                         | Símbolo              |                          
 ]                         | Símbolo              |                          
 (                         | Símbolo              |                          
 )                         | Símbolo              |                          
 [                         | Símbolo              |                          
-(                         | Símbolo              |                          
-)                         | Símbolo              |                          
 ;                         | Símbolo              |                          
 ]                         | Símbolo              |                          
+(                         | Símbolo              |                          
+)                         | Símbolo              |                          
 [                         | Símbolo              |                          
+;                         | Símbolo              |                          
+]                         | Símbolo              |                          
+(                         | Símbolo              |                          
+,                         | Símbolo              |                          
+)                         | Símbolo              |                          
+[                         | Símbolo              |                          
+;                         | Símbolo              |                          
 (                         | Símbolo              |                          
 )                         | Símbolo              |                          
 ;                         | Símbolo              |                          
 ]                         | Símbolo              |                          
-"hola a todos"            | Cadena               |                          
-"eduardo de la cruz"      | Cadena               |                          
+(                         | Símbolo              |                          
+)                         | Símbolo              |                          
+;                         | Símbolo              |                          
+"inicio del programa"     | Cadena               |                          
+"vacio"                   | Cadena               |                          
 -------------------------------------------------------

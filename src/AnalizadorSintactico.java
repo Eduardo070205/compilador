@@ -1,4 +1,5 @@
 import java.util.ArrayList;
+import java.util.Stack;
 import java.io.PrintWriter;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -131,6 +132,45 @@ class TablaSimbolos {
             System.out.println("Archivo guardado exitosamente en: " + ruta);
         } catch (IOException e) {
             System.out.println("Error al crear el archivo de la tabla de símbolos: " + e.getMessage());
+        }
+    }
+}
+
+// Verifica, con una pila, que cada "(" tenga su ")" y cada "[" tenga su "]",
+// respetando el orden de apertura/cierre, antes de iniciar el análisis sintáctico.
+class ValidadorDelimitadores {
+
+    public void verificar(ArrayList<Token> tokens) {
+        Stack<Token> pila = new Stack<>();
+
+        for (Token t : tokens) {
+            String tipo = t.getTipo();
+            if (tipo.equals("(") || tipo.equals("[")) {
+                pila.push(t);
+            } else if (tipo.equals(")") || tipo.equals("]")) {
+                if (pila.isEmpty()) {
+                    System.out.println("\n✗ Error sintáctico en la linea :" + t.getLinea());
+                    System.out.println("  Se encontró \"" + t.getValor() + "\" sin una apertura correspondiente");
+                    System.exit(1);
+                }
+                Token apertura = pila.pop();
+                String cierreEsperado = apertura.getTipo().equals("(") ? ")" : "]";
+                if (!tipo.equals(cierreEsperado)) {
+                    System.out.println("\n✗ Error sintáctico en la linea :" + t.getLinea());
+                    System.out.println("  Se esperaba \"" + cierreEsperado + "\" para cerrar \"" + apertura.getValor()
+                            + "\" abierto en la linea " + apertura.getLinea() + ", se encontró \"" + t.getValor() + "\"");
+                    System.exit(1);
+                }
+            }
+        }
+
+        if (!pila.isEmpty()) {
+            System.out.println("\n✗ Error sintáctico: quedaron delimitadores sin cerrar");
+            while (!pila.isEmpty()) {
+                Token apertura = pila.pop();
+                System.out.println("  \"" + apertura.getValor() + "\" abierto en la linea " + apertura.getLinea() + " nunca se cerró");
+            }
+            System.exit(1);
         }
     }
 }

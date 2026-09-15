@@ -1,4 +1,22 @@
-def int resultado? = x? + 10 ;
-if ( x? ) [ def float y? = 3.5 ; ]
-while ( resultado? ) [ def int z? = 1 ; ]
-func miFuncion? ( ) [ def string mensaje? = "hola mundo desde func" ; ]
+def int contador? = 0 ;
+def float promedio? = 3.5 ;
+def string mensaje? = "inicio del programa" ;
+
+if ( contador? == 0 ) [
+    def string estado? = "vacio" ;
+]
+
+while ( contador? < 5 ) [
+    def int temp? = 1 ;
+]
+
+for ( contador? < 10 ) [
+    def int i? = 0 ;
+]
+
+func sumar? ( int a? , int b? ) [
+    def int resultado? = a? + b? ;
+    print ( resultado? ) ;
+]
+
+print ( mensaje? ) ;
