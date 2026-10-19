@@ -8,8 +8,9 @@ public class Main {
 
         ArrayList<String> tokens = new ArrayList<String>();
         ArrayList<Integer> lineas = new ArrayList<Integer>();
+        ArrayList<Integer> columnas = new ArrayList<Integer>();
+        ArrayList<String> lineasFuente = new ArrayList<String>();
         ArrayList<String> tokensNoValidos = new ArrayList<String>();
-        ArrayList<Integer> lineasNoValidos = new ArrayList<Integer>();
         Tokens token = new Tokens();
         StringBuilder cadena = new StringBuilder();
         boolean dentroDeComillas = false;
@@ -17,6 +18,7 @@ public class Main {
         File archivo;
         FileReader fr = null;
         String rutaSalida = "archivos/salida.txt";
+        String rutaErrores = "archivos/errores.txt";
         BufferedReader br = null;
         int linea = 0;
         ArrayList<String> pr_tipo = new ArrayList<>();
@@ -31,7 +33,8 @@ public class Main {
             while ((fila = br.readLine()) != null) {
 
                 linea = linea + 1;
-                dentroDeComillas = tokenizarLinea(fila, linea, tokens, lineas, cadena, dentroDeComillas);
+                lineasFuente.add(fila);
+                dentroDeComillas = tokenizarLinea(fila, linea, tokens, lineas, columnas, cadena, dentroDeComillas);
             }
 
             ArrayList<String> ids  = token.identificador(tokens);
@@ -51,12 +54,12 @@ public class Main {
 
             ArrayList<String> lexemasOriginales = new ArrayList<>(tokens);
             ArrayList<Integer> lineasOriginales = new ArrayList<>(lineas);
+            ArrayList<Integer> columnasOriginales = new ArrayList<>(columnas);
 
             for (int idx = 0; idx < tokens.size(); idx++) {
                 String t = tokens.get(idx);
                 if (!t.isEmpty() && !todosLosValidos.contains(t)) {
                     tokensNoValidos.add(t);
-                    lineasNoValidos.add(lineas.get(idx));
                 }
             }
 
@@ -166,43 +169,52 @@ public class Main {
                 System.out.println("Error al crear el archivo de salida: " + e.getMessage());
             }
 
-            if (!tokensNoValidos.isEmpty()) {
+            // ── Análisis léxico con recuperación de errores ──────────
+            // Cada lexema no válido se diagnostica, se reporta y se sustituye
+            // por el token que probablemente se quiso escribir, para que el
+            // análisis sintáctico pueda continuar y reportar sus propios errores.
+            Errores.setFuente(lineasFuente);
+            Conversor conversor = new Conversor();
+            ArrayList<Token> tokensParseados = conversor.convertir(lexemasOriginales, lineasOriginales, columnasOriginales);
 
-                for (int idx = 0; idx < tokensNoValidos.size(); idx++) {
-                    String t = tokensNoValidos.get(idx);
-                    if (t.startsWith("\"")) {
-                        Errores.errCadenaSinCerrar(lineasNoValidos.get(idx), t);
-                    } else {
-                        Errores.errLexico(lineasNoValidos.get(idx), t);
-                    }
-                }
+            // ── Análisis sintáctico con recuperación en modo pánico ──
+            System.out.println("\n=== Análisis sintáctico ===");
+            boolean delimitadoresOk = new ValidadorDelimitadores().verificar(tokensParseados);
+            Parser parser = new Parser(tokensParseados);
+            if (delimitadoresOk) {
+                parser.programa();
+            } else {
+                System.out.println("Se omitió el análisis sintáctico detallado: primero corrige los paréntesis/corchetes sin pareja.");
+            }
 
-            }else{
-
-                Conversor conversor = new Conversor();
-                ArrayList<Token> tokensParseados = conversor.convertir(lexemasOriginales, lineasOriginales);
-
-                new ValidadorDelimitadores().verificar(tokensParseados);
-
-                System.out.println("\n=== Análisis sintáctico ===");
-                Parser parser = new Parser(tokensParseados);
-                parser.S();
-                System.out.println("\nPrograma sintácticamente correcto.");
+            if (Errores.hayErrores()) {
+                Errores.imprimir();
+                Errores.guardar(rutaErrores);
+                System.out.println("\nCompilación fallida.");
+            } else {
+                System.out.println("\nPrograma léxica y sintácticamente correcto.");
+                Errores.guardar(rutaErrores);
                 parser.getTabla().imprimir();
                 parser.getTabla().imprimirArchivo("archivos/tabla_simbolos.txt");
 
+                // ── Grafo de flujo de control ────────────────────────
+                GeneradorCFG cfg = new GeneradorCFG(tokensParseados);
+                cfg.generar();
+                cfg.imprimir();
+                cfg.exportarDot("archivos/cfg.dot");
+                cfg.generarImagen("archivos/cfg.dot", "archivos/cfg.png");
             }
 
 
 
         } catch (FileNotFoundException e) {
-            System.out.println("No se encontro el archivo");
+            System.out.println("No se encontro el archivo: " + ruta1);
         } catch (IOException e) {
             System.out.println("Error en el archivo");
         } finally {
             try {
-                br.close();
-                fr.close();
+                if (br != null) br.close();
+                if (fr != null) fr.close();
             } catch (IOException e) {
                 System.out.println("Error al cerrar el archivo");
             }
@@ -211,17 +223,21 @@ public class Main {
 
     // Separa una línea en lexemas por espacios, sin partir el contenido
     // que va entre comillas dobles (para soportar cadenas con espacios),
-    // registrando en "lineas" la línea real de origen de cada lexema.
-    private static boolean tokenizarLinea(String fila, int numeroLinea, ArrayList<String> tokens, ArrayList<Integer> lineas, StringBuilder cadena, boolean dentroDeComillas) {
+    // registrando en "lineas" y "columnas" la posición real de cada lexema
+    // (la columna inicia en 1) para poder señalar los errores con precisión.
+    private static boolean tokenizarLinea(String fila, int numeroLinea, ArrayList<String> tokens, ArrayList<Integer> lineas, ArrayList<Integer> columnas, StringBuilder cadena, boolean dentroDeComillas) {
+        int inicio = 0;
         for (int i = 0; i < fila.length(); i++) {
             char c = fila.charAt(i);
             if (c == '"') {
                 dentroDeComillas = !dentroDeComillas;
                 cadena.append(c);
-            } else if (c == ' ' && !dentroDeComillas) {
+            } else if ((c == ' ' || c == '\t') && !dentroDeComillas) {
                 tokens.add(cadena.toString());
                 lineas.add(numeroLinea);
+                columnas.add(inicio + 1);
                 cadena.setLength(0);
+                inicio = i + 1;
             } else {
                 cadena.append(c);
             }
@@ -232,12 +248,15 @@ public class Main {
         dentroDeComillas = false;
         tokens.add(cadena.toString());
         lineas.add(numeroLinea);
+        columnas.add(inicio + 1);
         cadena.setLength(0);
         return dentroDeComillas;
     }
 }
 
 class Tokens {
+
+    public static final String[] PALABRAS_RESERVADAS = {"def", "if", "else", "while", "for", "int", "string", "float", "func", "print"};
 
     public ArrayList<String> identificador(ArrayList<String> lexemas) {
         ArrayList<String> ids = new ArrayList<String>();
@@ -250,7 +269,7 @@ class Tokens {
     }
 
     public ArrayList<String> palabraReservadas(ArrayList<String> lexemas) {
-        String[] pReservadas = {"def", "if", "else", "while", "for", "int", "string", "float", "func", "print"};
+        String[] pReservadas = PALABRAS_RESERVADAS;
         ArrayList<String> palabrasUsadas = new ArrayList<String>();
         for (int i = 0; i < lexemas.size(); i++) {
             for (int y = 0; y < pReservadas.length; y++) {

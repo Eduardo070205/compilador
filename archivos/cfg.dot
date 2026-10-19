@@ -1,0 +1,40 @@
+digraph CFG {
+    compound=true;
+    node [fontname="Consolas", fontsize=10];
+    edge [fontname="Consolas", fontsize=10];
+
+    subgraph cluster_0 {
+        label="Programa principal";
+        style=rounded; color=gray50;
+        g0_ENTRY [label="ENTRY", shape=ellipse, style=filled, fillcolor="gray85"];
+        g0_B1 [label="B1\n1: def int contador? = 0 ;\l2: def float promedio? = 3.5 ;\l3: def string mensaje? = \"inicio del programa\" ;\l5: if ( contador? == 0 )\l", shape=box, style=filled, fillcolor="lightyellow"];
+        g0_B2 [label="B2\n6: def string estado? = \"vacio\" ;\l", shape=box, style=filled, fillcolor="aliceblue"];
+        g0_B3 [label="B3\n9: while ( contador? < 5 )\l", shape=box, style=filled, fillcolor="lightyellow"];
+        g0_B4 [label="B4\n10: def int temp? = 1 ;\l", shape=box, style=filled, fillcolor="aliceblue"];
+        g0_B5 [label="B5\n13: for ( contador? < 10 )\l", shape=box, style=filled, fillcolor="lightyellow"];
+        g0_B6 [label="B6\n14: def int i? = 0 ;\l", shape=box, style=filled, fillcolor="aliceblue"];
+        g0_B7 [label="B7\n22: print ( mensaje? ) ;\l", shape=box, style=filled, fillcolor="aliceblue"];
+        g0_EXIT [label="EXIT", shape=ellipse, style=filled, fillcolor="gray85"];
+        g0_ENTRY -> g0_B1;
+        g0_B1 -> g0_B2 [label="V", color="darkgreen", fontcolor="darkgreen"];
+        g0_B2 -> g0_B3;
+        g0_B1 -> g0_B3 [label="F", color="red3", fontcolor="red3"];
+        g0_B3 -> g0_B4 [label="V", color="darkgreen", fontcolor="darkgreen"];
+        g0_B4 -> g0_B3;
+        g0_B3 -> g0_B5 [label="F", color="red3", fontcolor="red3"];
+        g0_B5 -> g0_B6 [label="V", color="darkgreen", fontcolor="darkgreen"];
+        g0_B6 -> g0_B5;
+        g0_B5 -> g0_B7 [label="F", color="red3", fontcolor="red3"];
+        g0_B7 -> g0_EXIT;
+    }
+
+    subgraph cluster_1 {
+        label="func sumar? ( int a? , int b? )  (línea 17)";
+        style=rounded; color=gray50;
+        g1_ENTRY [label="ENTRY", shape=ellipse, style=filled, fillcolor="gray85"];
+        g1_B1 [label="B1\n18: def int resultado? = a? + b? ;\l19: print ( resultado? ) ;\l", shape=box, style=filled, fillcolor="aliceblue"];
+        g1_EXIT [label="EXIT", shape=ellipse, style=filled, fillcolor="gray85"];
+        g1_ENTRY -> g1_B1;
+        g1_B1 -> g1_EXIT;
+    }
+}

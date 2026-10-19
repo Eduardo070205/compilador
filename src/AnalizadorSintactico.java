@@ -17,11 +17,13 @@ class Token {
     private String tipo;
     private String valor;
     private int linea;
+    private int columna;
 
-    public Token(String tipo, String valor, int linea) {
+    public Token(String tipo, String valor, int linea, int columna) {
         this.tipo = tipo;
         this.valor = valor;
         this.linea = linea;
+        this.columna = columna;
     }
 
     public String getTipo() {
@@ -41,9 +43,29 @@ class Token {
 
     }
 
+    public int getColumna() {
+
+        return columna;
+
+    }
+
+    // Descripción legible del token para los mensajes de error
+    public String describir() {
+        return switch (tipo) {
+            case "EOF" -> "el fin del archivo";
+            case "ID"  -> "el identificador '" + valor + "'";
+            case "NUM" -> "el número '" + valor + "'";
+            case "STR" -> "la cadena " + valor;
+            case "OP"  -> "el operador '" + valor + "'";
+            default    -> Character.isLetter(tipo.charAt(0))
+                    ? "la palabra reservada '" + valor + "'"
+                    : "el símbolo '" + valor + "'";
+        };
+    }
+
     @Override
     public String toString() {
-        return "[" + tipo + " : " + valor + " (línea " + linea + ")]";
+        return "[" + tipo + " : " + valor + " (línea " + linea + ", columna " + columna + ")]";
     }
 }
 
@@ -138,48 +160,91 @@ class TablaSimbolos {
 
 // Verifica, con una pila, que cada "(" tenga su ")" y cada "[" tenga su "]",
 // respetando el orden de apertura/cierre, antes de iniciar el análisis sintáctico.
+// Reporta todos los delimitadores sin pareja (no sólo el primero).
 class ValidadorDelimitadores {
 
-    public void verificar(ArrayList<Token> tokens) {
+    public boolean verificar(ArrayList<Token> tokens) {
         Stack<Token> pila = new Stack<>();
+        boolean correcto = true;
 
         for (Token t : tokens) {
             String tipo = t.getTipo();
-            if (tipo.equals("(") || tipo.equals("[")) {
+            if (tipo.equals("[")) {
+                // En el lenguaje un bloque nunca va dentro de paréntesis,
+                // así que los '(' pendientes antes de un '[' quedaron sin cerrar
+                while (!pila.isEmpty() && pila.peek().getTipo().equals("(")) {
+                    Token abierto = pila.pop();
+                    Errores.reportar(CodigoError.DELIMITADOR_SIN_CIERRE, abierto.getLinea(), abierto.getColumna(), 1,
+                            "'(' no se cerró: falta ')' antes del '[' de la línea " + t.getLinea());
+                    correcto = false;
+                }
+                pila.push(t);
+            } else if (tipo.equals("(")) {
                 pila.push(t);
             } else if (tipo.equals(")") || tipo.equals("]")) {
-                if (pila.isEmpty()) {
-                    System.out.println("\n✗ Error sintáctico en la linea :" + t.getLinea());
-                    System.out.println("  Se encontró \"" + t.getValor() + "\" sin una apertura correspondiente");
-                    System.exit(1);
+                String apertura = tipo.equals(")") ? "(" : "[";
+
+                if (!contieneApertura(pila, apertura)) {
+                    Errores.reportar(CodigoError.DELIMITADOR_SIN_APERTURA, t.getLinea(), t.getColumna(), 1,
+                            "Se encontró '" + tipo + "' sin un '" + apertura + "' que le corresponda");
+                    correcto = false;
+                    continue;
                 }
-                Token apertura = pila.pop();
-                String cierreEsperado = apertura.getTipo().equals("(") ? ")" : "]";
-                if (!tipo.equals(cierreEsperado)) {
-                    System.out.println("\n✗ Error sintáctico en la linea :" + t.getLinea());
-                    System.out.println("  Se esperaba \"" + cierreEsperado + "\" para cerrar \"" + apertura.getValor()
-                            + "\" abierto en la linea " + apertura.getLinea() + ", se encontró \"" + t.getValor() + "\"");
-                    System.exit(1);
+
+                // Los delimitadores abiertos después de la apertura correspondiente nunca se cerraron
+                while (!pila.peek().getTipo().equals(apertura)) {
+                    Token abierto = pila.pop();
+                    Errores.reportar(CodigoError.DELIMITADOR_SIN_CIERRE, abierto.getLinea(), abierto.getColumna(), 1,
+                            "'" + abierto.getValor() + "' no se cerró: falta '" + cierreDe(abierto.getTipo())
+                            + "' antes del '" + tipo + "' de la línea " + t.getLinea());
+                    correcto = false;
                 }
+                pila.pop();
             }
         }
 
-        if (!pila.isEmpty()) {
-            System.out.println("\n✗ Error sintáctico: quedaron delimitadores sin cerrar");
-            while (!pila.isEmpty()) {
-                Token apertura = pila.pop();
-                System.out.println("  \"" + apertura.getValor() + "\" abierto en la linea " + apertura.getLinea() + " nunca se cerró");
-            }
-            System.exit(1);
+        while (!pila.isEmpty()) {
+            Token abierto = pila.pop();
+            Errores.reportar(CodigoError.DELIMITADOR_SIN_CIERRE, abierto.getLinea(), abierto.getColumna(), 1,
+                    "'" + abierto.getValor() + "' nunca se cerró: falta '" + cierreDe(abierto.getTipo()) + "'");
+            correcto = false;
         }
+        return correcto;
+    }
+
+    // Busca la apertura desde el tope de la pila; un ')' no puede cerrar un '('
+    // que esté fuera del bloque '[' actual
+    private boolean contieneApertura(Stack<Token> pila, String apertura) {
+        for (int k = pila.size() - 1; k >= 0; k--) {
+            String tipo = pila.get(k).getTipo();
+            if (tipo.equals(apertura)) return true;
+            if (apertura.equals("(") && tipo.equals("[")) return false;
+        }
+        return false;
+    }
+
+    private String cierreDe(String apertura) {
+        return apertura.equals("(") ? ")" : "]";
     }
 }
 
+/*
+    Analizador sintáctico descendente recursivo con recuperación de errores
+    en "modo pánico": al encontrar un error lo reporta, descarta tokens hasta
+    un punto seguro (un ';', el inicio de otra sentencia o el fin de un bloque)
+    y continúa, de modo que se reportan todos los errores en una sola ejecución.
+*/
 class Parser {
+
+    // Se lanza al detectar un error para abandonar la sentencia actual
+    private static class ErrorSintactico extends RuntimeException {
+        ErrorSintactico() {
+            super(null, null, false, false);
+        }
+    }
 
     private ArrayList<Token> tokens;
     private int i = 0;
-    private int ultimaLinea = 0;
     private TablaSimbolos tabla = new TablaSimbolos();
 
     public Parser(ArrayList<Token> tokens) {
@@ -201,22 +266,79 @@ class Parser {
 
     private Token actual() {
         if (i < tokens.size()) return tokens.get(i);
-        return new Token("EOF", "", ultimaLinea);
+        if (tokens.isEmpty()) return new Token("EOF", "", 1, 1);
+        Token ultimo = tokens.get(tokens.size() - 1);
+        return new Token("EOF", "", ultimo.getLinea(), ultimo.getColumna() + ultimo.getValor().length());
     }
 
-    // S → SENTENCIA | SENTENCIA S
-    public void S() {
+    private Token anterior() {
+        return i > 0 ? tokens.get(i - 1) : actual();
+    }
 
-        if (actual().getTipo().equals("EOF")){
-            return;
-        }
-        if (actual().getTipo().equals("]")){
-            return;
-        }
-        SENTENCIA();
-        if (!actual().getTipo().equals("EOF") && !actual().getTipo().equals("]")) {
+    private boolean es(String tipo) {
+        return actual().getTipo().equals(tipo);
+    }
+
+    private boolean esOperador(String valor) {
+        return es("OP") && actual().getValor().equals(valor);
+    }
+
+    private boolean esInicioSentencia(String tipo) {
+        return tipo.equals("DEF") || tipo.equals("IF") || tipo.equals("WHILE")
+            || tipo.equals("FOR") || tipo.equals("FUNC") || tipo.equals("PRINT");
+    }
+
+    // PROGRAMA → S EOF
+    public void programa() {
+        while (!es("EOF")) {
             S();
+            if (es("]")) {
+                Errores.reportar(CodigoError.DELIMITADOR_SIN_APERTURA, actual().getLinea(), actual().getColumna(), 1,
+                        "Se encontró ']' sin un bloque abierto");
+                i++;
+            }
         }
+    }
+
+    // S → SENTENCIA S | ε   (se detiene en ']' o al final del archivo)
+    public void S() {
+        while (!es("EOF") && !es("]")) {
+            int inicio = i;
+            try {
+                SENTENCIA();
+            } catch (ErrorSintactico e) {
+                // Garantiza avanzar al menos un token para no ciclar en el mismo error
+                if (i == inicio && !es("[")) i++;
+                sincronizar();
+            }
+        }
+    }
+
+    // Modo pánico: descarta tokens hasta después de un ';', antes del inicio
+    // de otra sentencia o antes de un ']'. Los bloques [ ... ] de la sentencia
+    // con error se saltan completos para no confundir su contenido.
+    private void sincronizar() {
+        while (!es("EOF")) {
+            if (es(";")) {
+                i++;
+                return;
+            }
+            if (es("[")) {
+                saltarBloque();
+                continue;
+            }
+            if (es("]") || esInicioSentencia(actual().getTipo())) return;
+            i++;
+        }
+    }
+
+    private void saltarBloque() {
+        int profundidad = 0;
+        do {
+            if (es("[")) profundidad++;
+            else if (es("]")) profundidad--;
+            i++;
+        } while (profundidad > 0 && !es("EOF"));
     }
 
     // SENTENCIA → DEF_VAR | IF_EST | WHILE_EST | FOR_EST | FUNC_DEF | PRINT_EST
@@ -228,7 +350,16 @@ class Parser {
             case "FOR"   -> FOR_EST();
             case "FUNC"  -> FUNC_DEF();
             case "PRINT" -> PRINT_EST();
-            default -> error("def, if, while, for, func o print");
+            case "ELSE"  -> error(CodigoError.SENTENCIA_INVALIDA,
+                    "'else' sin un 'if' previo (el 'else' debe ir justo después del bloque ']' del 'if')");
+            case "INT", "STRING", "FLOAT" -> error(CodigoError.SENTENCIA_INVALIDA,
+                    "Falta 'def' antes del tipo '" + actual().getValor() + "' para declarar una variable");
+            case "ID" -> error(CodigoError.SENTENCIA_INVALIDA,
+                    "Una sentencia no puede iniciar con " + actual().describir()
+                    + " (¿olvidaste 'def <tipo>' para declararla?)");
+            default -> error(CodigoError.SENTENCIA_INVALIDA,
+                    "Se esperaba el inicio de una sentencia (def, if, while, for, func o print), se encontró "
+                    + actual().describir());
         }
     }
 
@@ -236,27 +367,34 @@ class Parser {
     private void DEF_VAR() {
         match("DEF");
         String tipoDecl = actual().getValor();
+        if (!esTipo(actual().getTipo())) {
+            errorEsperado(CodigoError.TIPO_ESPERADO, "el tipo de dato (int, string o float) después de 'def'");
+        }
         TIPO();
         String nombre = actual().getValor();
         int lineaDecl = actual().getLinea();
+        if (!es("ID")) {
+            errorEsperado(CodigoError.IDENTIFICADOR_ESPERADO,
+                    "el nombre de la variable (identificador terminado en '?') después de '" + tipoDecl + "'");
+        }
         match("ID");
+        if (!esOperador("=")) {
+            errorEsperado(CodigoError.FALTA_ASIGNACION, "'=' después de la variable '" + nombre + "'");
+        }
         match("OP");
         int inicioExp = i;
-        EXP();
+        EXP("el valor de la variable '" + nombre + "'");
         String valorExp = construirTexto(inicioExp, i);
-        match(";");
+        finSentencia("la declaración de '" + nombre + "'");
         tabla.agregar(nombre, tipoDecl, "Variable", lineaDecl, valorExp);
-        //System.out.println("Declaración de variable válida");
     }
 
     // TIPO → int | string | float
     private void TIPO() {
         if (esTipo(actual().getTipo())) {
-            //System.out.println("  match(TIPO) ← " + actual().getValor());
-            ultimaLinea = actual().getLinea();
             i++;
         } else {
-            error("int, string o float");
+            errorEsperado(CodigoError.TIPO_ESPERADO, "un tipo de dato (int, string o float)");
         }
     }
 
@@ -265,30 +403,26 @@ class Parser {
     }
 
     // E → T E'
-    private void EXP() {
-        T();
+    private void EXP(String contexto) {
+        T(contexto);
         EXP_PRIMA();
     }
 
     // T → ID | NUM | STR
-    private void T() {
-        if (actual().getTipo().equals("ID")){
-            match("ID");  return;
+    private void T(String contexto) {
+        if (es("ID") || es("NUM") || es("STR")) {
+            i++;
+            return;
         }
-        if (actual().getTipo().equals("NUM")){
-            match("NUM"); return;
-        }
-        if (actual().getTipo().equals("STR")){
-            match("STR"); return;
-        }
-        error("identificador, número o cadena");
+        errorEsperado(CodigoError.EXPRESION_INVALIDA, "un identificador, número o cadena como " + contexto);
     }
 
     // E' → OP T E' | ε  (OP aritmético; excluye "=" y los relacionales)
     private void EXP_PRIMA() {
-        if (actual().getTipo().equals("OP") && !actual().getValor().equals("=") && !esRelacional(actual().getValor())) {
+        if (es("OP") && !actual().getValor().equals("=") && !esRelacional(actual().getValor())) {
+            String operador = actual().getValor();
             match("OP");
-            T();
+            T("operando después de '" + operador + "'");
             EXP_PRIMA();
         }
     }
@@ -299,54 +433,81 @@ class Parser {
     }
 
     // CONDICION → EXP ( OP_REL EXP )?
-    private void CONDICION() {
-        EXP();
-        if (actual().getTipo().equals("OP") && esRelacional(actual().getValor())) {
-            match("OP");
-            EXP();
+    private void CONDICION(String estructura) {
+        if (es(")")) {
+            error(CodigoError.CONDICION_INVALIDA, "La condición del '" + estructura + "' está vacía");
         }
+        EXP("la condición del '" + estructura + "'");
+        if (esOperador("=")) {
+            error(CodigoError.CONDICION_INVALIDA,
+                    "En la condición del '" + estructura + "' se usó '=' (asignación); para comparar usa '=='");
+        }
+        if (es("OP") && esRelacional(actual().getValor())) {
+            String operador = actual().getValor();
+            match("OP");
+            EXP("operando derecho de '" + operador + "'");
+        }
+    }
+
+    // ENCABEZADO → ( CONDICION )
+    private void ENCABEZADO(String estructura) {
+        esperar("(", CodigoError.DELIMITADOR_ESPERADO, "'(' después de '" + estructura + "'");
+        try {
+            CONDICION(estructura);
+            esperar(")", CodigoError.DELIMITADOR_ESPERADO, "')' para cerrar la condición del '" + estructura + "'");
+        } catch (ErrorSintactico e) {
+            // Recuperación local: se descarta la condición y se sigue con el bloque
+            saltarHastaCierreParentesis();
+        }
+    }
+
+    // Descarta tokens hasta consumir el ')' que cierra el paréntesis actual
+    private void saltarHastaCierreParentesis() {
+        int profundidad = 0;
+        while (!es("EOF") && !es("[") && !es("]") && !es(";")) {
+            if (es("(")) {
+                profundidad++;
+            } else if (es(")")) {
+                if (profundidad == 0) {
+                    i++;
+                    return;
+                }
+                profundidad--;
+            }
+            i++;
+        }
+    }
+
+    // BLOQUE → [ S ]
+    private void BLOQUE(String estructura) {
+        esperar("[", CodigoError.DELIMITADOR_ESPERADO, "'[' para abrir el bloque del '" + estructura + "'");
+        S();
+        esperar("]", CodigoError.DELIMITADOR_ESPERADO, "']' para cerrar el bloque del '" + estructura + "'");
     }
 
     // IF_EST → if ( CONDICION ) [ S ] ( else [ S ] )?
     private void IF_EST() {
         match("IF");
-        match("(");
-        CONDICION();
-        match(")");
-        match("[");
-        S();
-        match("]");
-        if (actual().getTipo().equals("ELSE")) {
+        ENCABEZADO("if");
+        BLOQUE("if");
+        if (es("ELSE")) {
             match("ELSE");
-            match("[");
-            S();
-            match("]");
+            BLOQUE("else");
         }
-        //System.out.println("Sentencia if válida");
     }
 
     // WHILE_EST → while ( CONDICION ) [ S ]
     private void WHILE_EST() {
         match("WHILE");
-        match("(");
-        CONDICION();
-        match(")");
-        match("[");
-        S();
-        match("]");
-        //System.out.println("Sentencia while válida");
+        ENCABEZADO("while");
+        BLOQUE("while");
     }
 
     // FOR_EST → for ( CONDICION ) [ S ]
     private void FOR_EST() {
         match("FOR");
-        match("(");
-        CONDICION();
-        match(")");
-        match("[");
-        S();
-        match("]");
-        //System.out.println("Sentencia for válida");
+        ENCABEZADO("for");
+        BLOQUE("for");
     }
 
     // FUNC_DEF → func ID ( PARAMS ) [ S ]
@@ -354,23 +515,41 @@ class Parser {
         match("FUNC");
         String nombreFuncion = actual().getValor();
         int lineaFuncion = actual().getLinea();
+        if (!es("ID")) {
+            errorEsperado(CodigoError.IDENTIFICADOR_ESPERADO,
+                    "el nombre de la función (identificador terminado en '?') después de 'func'");
+        }
         match("ID");
-        match("(");
+        esperar("(", CodigoError.DELIMITADOR_ESPERADO, "'(' después del nombre de la función '" + nombreFuncion + "'");
         tabla.entrarAmbito(nombreFuncion);
-        int inicioParams = i;
-        PARAMS();
-        String textoParams = construirTexto(inicioParams, i);
-        match(")");
-        match("[");
-        S();
-        match("]");
-        tabla.salirAmbito();
+        String textoParams = "";
+        try {
+            int inicioParams = i;
+            try {
+                PARAMS();
+                textoParams = construirTexto(inicioParams, i);
+                if (es("ID") || esTipo(actual().getTipo())) {
+                    errorEsperado(CodigoError.PARAMETRO_INVALIDO, "',' entre los parámetros de la función '" + nombreFuncion + "'");
+                }
+                esperar(")", CodigoError.DELIMITADOR_ESPERADO, "')' para cerrar los parámetros de '" + nombreFuncion + "'");
+            } catch (ErrorSintactico e) {
+                // Recuperación local: se descartan los parámetros y se analiza el cuerpo
+                saltarHastaCierreParentesis();
+            }
+            BLOQUE("func " + nombreFuncion);
+        } finally {
+            // Aunque haya error, se sale del ámbito para no dejar la tabla inconsistente
+            tabla.salirAmbito();
+        }
         tabla.agregar(nombreFuncion, "-", "Funcion", lineaFuncion, "(" + textoParams + ")");
-        //System.out.println("Definición de función válida");
     }
 
     // PARAMS → PARAM PARAMS' | ε
     private void PARAMS() {
+        if (es("ID")) {
+            error(CodigoError.PARAMETRO_INVALIDO,
+                    "Al parámetro '" + actual().getValor() + "' le falta el tipo de dato (int, string o float)");
+        }
         if (esTipo(actual().getTipo())) {
             PARAM();
             PARAMS_PRIMA();
@@ -379,8 +558,15 @@ class Parser {
 
     // PARAMS' → , PARAM PARAMS' | ε
     private void PARAMS_PRIMA() {
-        if (actual().getTipo().equals(",")) {
+        if (es(",")) {
             match(",");
+            if (es(")")) {
+                error(CodigoError.PARAMETRO_INVALIDO, "Se esperaba otro parámetro después de ','");
+            }
+            if (es("ID")) {
+                error(CodigoError.PARAMETRO_INVALIDO,
+                        "Al parámetro '" + actual().getValor() + "' le falta el tipo de dato (int, string o float)");
+            }
             PARAM();
             PARAMS_PRIMA();
         }
@@ -389,9 +575,15 @@ class Parser {
     // PARAM → TIPO ID
     private void PARAM() {
         String tipoParam = actual().getValor();
+        if (!esTipo(actual().getTipo())) {
+            errorEsperado(CodigoError.PARAMETRO_INVALIDO, "el tipo del parámetro (int, string o float)");
+        }
         TIPO();
         String nombreParam = actual().getValor();
         int lineaParam = actual().getLinea();
+        if (!es("ID")) {
+            errorEsperado(CodigoError.PARAMETRO_INVALIDO, "el nombre del parámetro después de '" + tipoParam + "'");
+        }
         match("ID");
         tabla.agregar(nombreParam, tipoParam, "Parametro", lineaParam, "");
     }
@@ -399,65 +591,71 @@ class Parser {
     // PRINT_EST → print ( EXP ) ;
     private void PRINT_EST() {
         match("PRINT");
-        match("(");
-        EXP();
-        match(")");
-        match(";");
-        //System.out.println("Sentencia print válida");
+        esperar("(", CodigoError.DELIMITADOR_ESPERADO, "'(' después de 'print'");
+        EXP("el valor a imprimir");
+        esperar(")", CodigoError.DELIMITADOR_ESPERADO, "')' para cerrar el 'print'");
+        finSentencia("la sentencia 'print'");
     }
 
     private void match(String tipoEsperado) {
-        if (actual().getTipo().equals(tipoEsperado)) {
-            //System.out.println("  match(" + tipoEsperado + ") ← " + actual().getValor());
-            ultimaLinea = actual().getLinea();
+        if (es(tipoEsperado)) {
             i++;
         } else {
-            error(tipoEsperado);
+            errorEsperado(CodigoError.SENTENCIA_INVALIDA, "'" + tipoEsperado + "'");
         }
     }
 
-    private void error(String esperado) {
-        System.out.println("\n✗ Error sintáctico en la linea :" + actual().getLinea());
-        System.out.println("  Se esperaba : " + esperado);
-        System.out.println("  Se encontró : " + actual().getTipo() + " (\"" + actual().getValor() + "\")");
-        System.exit(1);
+    private void esperar(String tipoEsperado, CodigoError codigo, String descripcion) {
+        if (es(tipoEsperado)) {
+            i++;
+        } else {
+            errorEsperado(codigo, descripcion);
+        }
+    }
+
+    // El ';' faltante se señala justo después del último token de la sentencia,
+    // que es donde debería ir (y no en la línea siguiente).
+    private void finSentencia(String sentencia) {
+        if (es(";")) {
+            i++;
+            return;
+        }
+        if (es("OP") && esRelacional(actual().getValor())) {
+            error(CodigoError.EXPRESION_INVALIDA, "El operador relacional '" + actual().getValor()
+                    + "' sólo puede usarse en condiciones de if, while o for");
+        }
+        Token ultimo = anterior();
+        Errores.reportar(CodigoError.FALTA_PUNTO_Y_COMA, ultimo.getLinea(),
+                ultimo.getColumna() + ultimo.getValor().length(), 1,
+                "Falta ';' al final de " + sentencia + "; después se encontró " + actual().describir()
+                + (actual().getLinea() != ultimo.getLinea() ? " en la línea " + actual().getLinea() : ""));
+        throw new ErrorSintactico();
+    }
+
+    private void errorEsperado(CodigoError codigo, String esperado) {
+        error(codigo, "Se esperaba " + esperado + ", se encontró " + actual().describir());
+    }
+
+    private void error(CodigoError codigo, String mensaje) {
+        Token t = actual();
+        Errores.reportar(codigo, t.getLinea(), t.getColumna(), t.getValor().length(), mensaje);
+        throw new ErrorSintactico();
     }
 }
 
 class Conversor {
 
-    public ArrayList<Token> convertir(ArrayList<String> lexemas, ArrayList<Integer> lineas) {
+    // Convierte los lexemas en tokens. Los lexemas no válidos se diagnostican
+    // (reportando su error léxico) y se sustituyen por los tokens recuperados.
+    public ArrayList<Token> convertir(ArrayList<String> lexemas, ArrayList<Integer> lineas, ArrayList<Integer> columnas) {
 
-        Tokens clasificador = new Tokens();
+        DiagnosticoLexico diagnostico = new DiagnosticoLexico();
         ArrayList<Token> tokens = new ArrayList<>();
-
-        ArrayList<String> ids  = clasificador.identificador(lexemas);
-        ArrayList<String> prs  = clasificador.palabraReservadas(lexemas);
-        ArrayList<String> nums = clasificador.numero(lexemas);
-        ArrayList<String> opes = clasificador.operador(lexemas);
-        ArrayList<String> sibs = clasificador.simbolo(lexemas);
-        ArrayList<String> strs = clasificador.cadenaTexto(lexemas);
 
         for (int idx = 0; idx < lexemas.size(); idx++) {
             String lexema = lexemas.get(idx);
             if (lexema.isEmpty()) continue;
-            int linea = lineas.get(idx);
-
-            if (prs.contains(lexema)) {
-                tokens.add(new Token(lexema.toUpperCase(), lexema, linea));
-            } else if (ids.contains(lexema)) {
-                tokens.add(new Token("ID", lexema, linea));
-            } else if (nums.contains(lexema)) {
-                tokens.add(new Token("NUM", lexema, linea));
-            } else if (strs.contains(lexema)) {
-                tokens.add(new Token("STR", lexema, linea));
-            } else if (opes.contains(lexema)) {
-                tokens.add(new Token("OP", lexema, linea));
-            } else if (sibs.contains(lexema)) {
-                tokens.add(new Token(lexema, lexema, linea));
-            } else {
-                tokens.add(new Token("NO_VALIDO", lexema, linea));
-            }
+            tokens.addAll(diagnostico.analizar(lexema, lineas.get(idx), columnas.get(idx)));
         }
 
         return tokens;
