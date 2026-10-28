@@ -1,0 +1,16 @@
+N°	Error semántico	Descripción	Ejemplo
+1	Variable no declarada	Se usa un identificador en una expresión, condición o print sin haber pasado antes por un def.	print ( total? ) ; sin def ... total? previo
+2	Redeclaración de variable	El mismo nombre se declara dos veces con def en el mismo ámbito.	def int x? = 1 ; seguido de def string x? = "a" ;
+3	Tipo incompatible en la declaración	El TIPO declarado no coincide con el tipo real del valor asignado.	def int nombre? = "hola" ;
+4	Tipos incompatibles en operación aritmética	Se suma/resta/multiplica/divide un string con un int/float.	def int total? = saludo? + 5 ;
+5	División entre cero	El operador / tiene como divisor el literal 0.	def int r? = x? / 0 ;
+6	Tipos incompatibles en comparación relacional	Se compara un string contra un int/float dentro de una CONDICION.	if ( nombre? > 5 ) [ ... ]
+7	Condición sin sentido semántico	Se usa un valor suelto (ej. un string) como condición de if/while/for sin comparación relacional.	while ( mensaje? ) [ ... ]
+8	Parámetros duplicados en una función	Dos parámetros de la misma func tienen el mismo nombre.	func f? ( int a? , int a? ) [ ... ]
+9	Nombre de función duplicado	Dos func distintas declaradas con el mismo identificador.	dos func sumar? ( ... ) en el mismo archivo
+10	Colisión función/variable	Una func se declara con el mismo nombre que una variable ya existente en ese ámbito.	def int sumar? = 1 ; y luego func sumar? ( ) [ ... ]
+11	Uso fuera de ámbito	Se usa un parámetro o variable local de una función fuera de su cuerpo (agravado porque if/while/for no abren su propio ámbito, solo func lo hace).	usar a? (parámetro de sumar?) en el ámbito global
+12	Shadowing no advertido	Un parámetro o variable local reutiliza el nombre de una variable global, ocultándola sin aviso.	variable global x? y parámetro int x? en una func
+13	Pérdida de precisión implícita	Se asigna un float a una variable int (o viceversa) sin advertencia de truncamiento.	def int contador? = 3.5 ;
+14	Variable declarada y nunca usada	Una variable se declara con def pero no vuelve a aparecer en ninguna expresión, condición o print.	def string temp? = "x" ; que nunca se referencia después
+15	Parámetro nunca usado en el cuerpo de la función	Un parámetro de func no se referencia dentro de su bloque [ S ].	func f? ( int b? ) [ print ( "hola" ) ; ]

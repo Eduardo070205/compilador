@@ -7,7 +7,7 @@ digraph CFG {
         label="Programa principal";
         style=rounded; color=gray50;
         g0_ENTRY [label="ENTRY", shape=ellipse, style=filled, fillcolor="gray85"];
-        g0_B1 [label="B1\n1: def int contador? = 0 ;\l2: def float promedio? = 3.5 ;\l3: def string mensaje? = \"inicio del programa\" ;\l5: if ( contador? == 0 )\l", shape=box, style=filled, fillcolor="lightyellow"];
+        g0_B1 [label="B1\n1: def int contador? = 1 ;\l2: def float promedio? = 3.5 ;\l3: def string mensaje? = \"inicio del programa\" ;\l5: if ( contador? == 0 )\l", shape=box, style=filled, fillcolor="lightyellow"];
         g0_B2 [label="B2\n6: def string estado? = \"vacio\" ;\l", shape=box, style=filled, fillcolor="aliceblue"];
         g0_B3 [label="B3\n9: while ( contador? < 5 )\l", shape=box, style=filled, fillcolor="lightyellow"];
         g0_B4 [label="B4\n10: def int temp? = 1 ;\l", shape=box, style=filled, fillcolor="aliceblue"];

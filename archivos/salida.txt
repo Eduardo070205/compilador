@@ -40,7 +40,7 @@ def                       | Palabra Reservada    | Definicion de variable
 int                       | Palabra Reservada    | Tipo dato entero         
 print                     | Palabra Reservada    | Impresion en consola     
 print                     | Palabra Reservada    | Impresion en consola     
-0                         | Número               |                          
+1                         | Número               |                          
 3.5                       | Número               |                          
 0                         | Número               |                          
 5                         | Número               |                          

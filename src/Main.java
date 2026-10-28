@@ -2,7 +2,6 @@ import java.io.*;
 import java.util.ArrayList;
 
 
-
 public class Main {
     public static void main(String[] args) {
 
@@ -192,10 +191,21 @@ public class Main {
                 Errores.guardar(rutaErrores);
                 System.out.println("\nCompilación fallida.");
             } else {
-                System.out.println("\nPrograma léxica y sintácticamente correcto.");
+                System.out.println("\nPrograma correcto en los análisis léxico, sintáctico y semántico.");
                 Errores.guardar(rutaErrores);
                 parser.getTabla().imprimir();
                 parser.getTabla().imprimirArchivo("archivos/tabla_simbolos.txt");
+
+                // ── Código intermedio de tres direcciones ───────────
+                CodigoIntermedio codigoIntermedio = new CodigoIntermedio(tokensParseados);
+                codigoIntermedio.generar();
+                codigoIntermedio.imprimir();
+                try {
+                    codigoIntermedio.guardar("archivos/codigo_intermedio.txt");
+                    System.out.println("Código intermedio guardado en: archivos/codigo_intermedio.txt");
+                } catch (IOException e) {
+                    System.out.println("Error al crear el archivo de código intermedio: " + e.getMessage());
+                }
 
                 // ── Grafo de flujo de control ────────────────────────
                 GeneradorCFG cfg = new GeneradorCFG(tokensParseados);

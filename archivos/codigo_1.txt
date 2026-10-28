@@ -1,4 +1,4 @@
-def int contador? = 0 ;
+def int contador? = 1 ;
 def float promedio? = 3.5 ;
 def string mensaje? = "inicio del programa" ;
 

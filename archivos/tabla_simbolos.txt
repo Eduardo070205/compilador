@@ -1,7 +1,7 @@
 ------------------------------------------------------------------------------
 NOMBRE          | TIPO     | CATEGORIA  | AMBITO       | LINEA | VALOR
 ------------------------------------------------------------------------------
-contador?       | int      | Variable   | global       | 1     | 0
+contador?       | int      | Variable   | global       | 1     | 1
 promedio?       | float    | Variable   | global       | 2     | 3.5
 mensaje?        | string   | Variable   | global       | 3     | "inicio del programa"
 estado?         | string   | Variable   | global       | 6     | "vacio"

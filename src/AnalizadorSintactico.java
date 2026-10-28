@@ -124,6 +124,21 @@ class TablaSimbolos {
         return pilaAmbitos.get(pilaAmbitos.size() - 1);
     }
 
+    public String getAmbitoActual() { return ambitoActual(); }
+
+    public Simbolo buscarEnAmbito(String nombre, String ambito) {
+        for (int i = simbolos.size() - 1; i >= 0; i--) {
+            Simbolo simbolo = simbolos.get(i);
+            if (simbolo.getNombre().equals(nombre) && simbolo.getAmbito().equals(ambito)) return simbolo;
+        }
+        return null;
+    }
+
+    public Simbolo buscar(String nombre, String ambito) {
+        Simbolo simbolo = buscarEnAmbito(nombre, ambito);
+        return simbolo != null || ambito.equals("global") ? simbolo : buscarEnAmbito(nombre, "global");
+    }
+
     public void agregar(String nombre, String tipo, String categoria, int linea, String valor) {
         simbolos.add(new Simbolo(nombre, tipo, categoria, ambitoActual(), linea, valor));
     }
@@ -246,6 +261,7 @@ class Parser {
     private ArrayList<Token> tokens;
     private int i = 0;
     private TablaSimbolos tabla = new TablaSimbolos();
+    private AnalizadorSemantico semantico = new AnalizadorSemantico(tabla);
 
     public Parser(ArrayList<Token> tokens) {
         this.tokens = tokens;
@@ -298,6 +314,7 @@ class Parser {
                 i++;
             }
         }
+        semantico.publicarDiagnosticos();
     }
 
     // S → SENTENCIA S | ε   (se detiene en ']' o al final del archivo)
@@ -371,8 +388,8 @@ class Parser {
             errorEsperado(CodigoError.TIPO_ESPERADO, "el tipo de dato (int, string o float) después de 'def'");
         }
         TIPO();
-        String nombre = actual().getValor();
-        int lineaDecl = actual().getLinea();
+        Token identificador = actual();
+        String nombre = identificador.getValor();
         if (!es("ID")) {
             errorEsperado(CodigoError.IDENTIFICADOR_ESPERADO,
                     "el nombre de la variable (identificador terminado en '?') después de '" + tipoDecl + "'");
@@ -383,10 +400,11 @@ class Parser {
         }
         match("OP");
         int inicioExp = i;
-        EXP("el valor de la variable '" + nombre + "'");
+        String tipoExp = EXP("el valor de la variable '" + nombre + "'");
         String valorExp = construirTexto(inicioExp, i);
+        semantico.validarAsignacion(tipoDecl, tipoExp, identificador);
         finSentencia("la declaración de '" + nombre + "'");
-        tabla.agregar(nombre, tipoDecl, "Variable", lineaDecl, valorExp);
+        semantico.declarar(identificador, tipoDecl, "Variable", valorExp);
     }
 
     // TIPO → int | string | float
@@ -402,29 +420,28 @@ class Parser {
         return tipo.equals("INT") || tipo.equals("STRING") || tipo.equals("FLOAT");
     }
 
-    // E → T E'
-    private void EXP(String contexto) {
-        T(contexto);
-        EXP_PRIMA();
+    // E → T E' con verificacion semantica de operandos
+    private String EXP(String contexto) {
+        String tipo = T(contexto);
+        while (es("OP") && !actual().getValor().equals("=") && !esRelacional(actual().getValor())) {
+            Token operador = actual();
+            match("OP");
+            Token tokenDerecho = actual();
+            String tipoDerecho = T("operando después de '" + operador.getValor() + "'");
+            semantico.validarDivision(operador, tokenDerecho);
+            tipo = semantico.tipoResultado(operador, tipo, tipoDerecho);
+        }
+        return tipo;
     }
 
-    // T → ID | NUM | STR
-    private void T(String contexto) {
+    private String T(String contexto) {
         if (es("ID") || es("NUM") || es("STR")) {
+            Token token = actual();
             i++;
-            return;
+            return semantico.tipoDe(token);
         }
         errorEsperado(CodigoError.EXPRESION_INVALIDA, "un identificador, número o cadena como " + contexto);
-    }
-
-    // E' → OP T E' | ε  (OP aritmético; excluye "=" y los relacionales)
-    private void EXP_PRIMA() {
-        if (es("OP") && !actual().getValor().equals("=") && !esRelacional(actual().getValor())) {
-            String operador = actual().getValor();
-            match("OP");
-            T("operando después de '" + operador + "'");
-            EXP_PRIMA();
-        }
+        return null;
     }
 
     private boolean esRelacional(String valor) {
@@ -437,16 +454,21 @@ class Parser {
         if (es(")")) {
             error(CodigoError.CONDICION_INVALIDA, "La condición del '" + estructura + "' está vacía");
         }
-        EXP("la condición del '" + estructura + "'");
+        Token inicio = actual();
+        String tipoIzquierdo = EXP("la condición del '" + estructura + "'");
         if (esOperador("=")) {
             error(CodigoError.CONDICION_INVALIDA,
                     "En la condición del '" + estructura + "' se usó '=' (asignación); para comparar usa '=='");
         }
+        boolean tieneComparacion = false;
         if (es("OP") && esRelacional(actual().getValor())) {
-            String operador = actual().getValor();
+            tieneComparacion = true;
+            Token operador = actual();
             match("OP");
-            EXP("operando derecho de '" + operador + "'");
+            String tipoDerecho = EXP("operando derecho de '" + operador.getValor() + "'");
+            semantico.validarComparacion(operador, tipoIzquierdo, tipoDerecho);
         }
+        semantico.validarCondicion(inicio, tieneComparacion);
     }
 
     // ENCABEZADO → ( CONDICION )
@@ -513,7 +535,8 @@ class Parser {
     // FUNC_DEF → func ID ( PARAMS ) [ S ]
     private void FUNC_DEF() {
         match("FUNC");
-        String nombreFuncion = actual().getValor();
+        Token identificadorFuncion = actual();
+        String nombreFuncion = identificadorFuncion.getValor();
         int lineaFuncion = actual().getLinea();
         if (!es("ID")) {
             errorEsperado(CodigoError.IDENTIFICADOR_ESPERADO,
@@ -521,7 +544,9 @@ class Parser {
         }
         match("ID");
         esperar("(", CodigoError.DELIMITADOR_ESPERADO, "'(' después del nombre de la función '" + nombreFuncion + "'");
-        tabla.entrarAmbito(nombreFuncion);
+        String ambitoFuncion = tabla.buscarEnAmbito(nombreFuncion, "global") == null
+                ? nombreFuncion : nombreFuncion + "#" + lineaFuncion;
+        tabla.entrarAmbito(ambitoFuncion);
         String textoParams = "";
         try {
             int inicioParams = i;
@@ -541,7 +566,7 @@ class Parser {
             // Aunque haya error, se sale del ámbito para no dejar la tabla inconsistente
             tabla.salirAmbito();
         }
-        tabla.agregar(nombreFuncion, "-", "Funcion", lineaFuncion, "(" + textoParams + ")");
+        semantico.declarar(identificadorFuncion, "-", "Funcion", "(" + textoParams + ")");
     }
 
     // PARAMS → PARAM PARAMS' | ε
@@ -579,13 +604,13 @@ class Parser {
             errorEsperado(CodigoError.PARAMETRO_INVALIDO, "el tipo del parámetro (int, string o float)");
         }
         TIPO();
-        String nombreParam = actual().getValor();
-        int lineaParam = actual().getLinea();
+        Token identificadorParam = actual();
+        String nombreParam = identificadorParam.getValor();
         if (!es("ID")) {
             errorEsperado(CodigoError.PARAMETRO_INVALIDO, "el nombre del parámetro después de '" + tipoParam + "'");
         }
         match("ID");
-        tabla.agregar(nombreParam, tipoParam, "Parametro", lineaParam, "");
+        semantico.declarar(identificadorParam, tipoParam, "Parametro", "");
     }
 
     // PRINT_EST → print ( EXP ) ;
@@ -661,4 +686,3 @@ class Conversor {
         return tokens;
     }
 }
-

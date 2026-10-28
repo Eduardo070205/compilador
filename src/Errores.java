@@ -6,17 +6,13 @@ import java.util.Comparator;
 import java.util.List;
 
 /*
-    Control centralizado de errores del compilador.
 
-    En lugar de detenerse en el primer error, cada fase (léxica y sintáctica)
-    reporta aquí todos los errores que encuentra. Al final se imprimen
-    ordenados por línea, con el fragmento del código fuente señalado y un
-    resumen, y se guardan en un archivo.
 */
 
 enum Fase {
     LEXICO("léxico"),
-    SINTACTICO("sintáctico");
+    SINTACTICO("sintáctico"),
+    SEMANTICO("semántico");
 
     private final String nombre;
 
@@ -49,7 +45,25 @@ enum CodigoError {
     CONDICION_INVALIDA         ("S08", Fase.SINTACTICO, "Condición inválida"),
     PARAMETRO_INVALIDO         ("S09", Fase.SINTACTICO, "Parámetro inválido"),
     DELIMITADOR_SIN_APERTURA   ("S10", Fase.SINTACTICO, "Delimitador de cierre sin apertura"),
-    DELIMITADOR_SIN_CIERRE     ("S11", Fase.SINTACTICO, "Delimitador sin cerrar");
+    DELIMITADOR_SIN_CIERRE     ("S11", Fase.SINTACTICO, "Delimitador sin cerrar"),
+
+    //--- ERRORES SEMANTICOS
+    VARIABLE_NO_DECLARADA      ("M01", Fase.SEMANTICO, "Identificador no declarado"),
+    DECLARACION_DUPLICADA      ("M02", Fase.SEMANTICO, "Declaración duplicada"),
+    TIPOS_INCOMPATIBLES        ("M03", Fase.SEMANTICO, "Tipos incompatibles"),
+    OPERADOR_TIPOS_INVALIDOS   ("M04", Fase.SEMANTICO, "Operador incompatible con sus operandos"),
+    COMPARACION_TIPOS_INVALIDOS("M05", Fase.SEMANTICO, "Comparación entre tipos incompatibles"),
+    FUNCION_NO_UTILIZABLE_COMO_VALOR("M06", Fase.SEMANTICO, "Función no utilizable como valor"),
+    DIVISION_ENTRE_CERO        ("M07", Fase.SEMANTICO, "División entre cero"),
+    CONDICION_SIN_COMPARACION   ("M08", Fase.SEMANTICO, "Condición sin comparación"),
+    PARAMETROS_DUPLICADOS      ("M09", Fase.SEMANTICO, "Parámetro duplicado"),
+    FUNCION_DUPLICADA          ("M10", Fase.SEMANTICO, "Función duplicada"),
+    COLISION_FUNCION_VARIABLE  ("M11", Fase.SEMANTICO, "Colisión entre función y variable"),
+    IDENTIFICADOR_FUERA_AMBITO ("M12", Fase.SEMANTICO, "Identificador fuera de ámbito"),
+    SOMBREADO_VARIABLE_GLOBAL  ("M13", Fase.SEMANTICO, "Variable global sombreada"),
+    PERDIDA_PRECISION          ("M14", Fase.SEMANTICO, "Pérdida de precisión implícita"),
+    VARIABLE_NO_UTILIZADA      ("M15", Fase.SEMANTICO, "Variable declarada y nunca usada"),
+    PARAMETRO_NO_UTILIZADO     ("M16", Fase.SEMANTICO, "Parámetro nunca usado");
 
     private final String codigo;
     private final Fase fase;
@@ -73,6 +87,7 @@ public class Errores {
     private static final ArrayList<ErrorCompilacion> errores = new ArrayList<>();
     private static List<String> fuente = new ArrayList<>();
     private static int omitidos = 0;
+    private static int semanticosOmitidos = 0;
 
     // Líneas del código fuente, para mostrar el fragmento donde está cada error.
     public static void setFuente(List<String> lineas) {
@@ -87,6 +102,11 @@ public class Errores {
             // siempre es consecuencia de éste (errores en cascada): se omite.
             if (codigo.getFase() == Fase.SINTACTICO && e.codigo().getFase() == Fase.LEXICO && e.linea() == linea) {
                 omitidos++;
+                return;
+            }
+            if (codigo.getFase() == Fase.SEMANTICO
+                    && e.codigo().getFase() != Fase.SEMANTICO && e.linea() == linea) {
+                semanticosOmitidos++;
                 return;
             }
         }
@@ -142,11 +162,15 @@ public class Errores {
     private static String resumen() {
         int lexicos = contar(Fase.LEXICO);
         int sintacticos = contar(Fase.SINTACTICO);
+        int semanticos = contar(Fase.SEMANTICO);
         String texto = "\nTotal: " + errores.size() + " error(es) — "
-                + lexicos + " léxico(s), " + sintacticos + " sintáctico(s)";
+                + lexicos + " léxico(s), " + sintacticos + " sintáctico(s), " + semanticos + " semántico(s)";
         if (omitidos > 0) {
             texto += "\n(Se omitieron " + omitidos + " error(es) sintáctico(s) en líneas con errores léxicos;"
                     + " corrige primero los léxicos y vuelve a compilar)";
+        }
+        if (semanticosOmitidos > 0) {
+            texto += "\n(Se omitieron " + semanticosOmitidos + " error(es) semántico(s) en líneas con errores léxicos o sintácticos)";
         }
         return texto;
     }
